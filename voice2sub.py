@@ -49,6 +49,8 @@ def transcribe(audio_file:str,  # auduio file
     # model = whisperx.load_model("large-v2", device, compute_type=compute_type, download_root="./")
 
     # save model to local path (optional)
+    gc.collect()
+    torch.cuda.empty_cache()
 
     model = whisperx.load_model("large-v2",
                                 device,
