@@ -30,17 +30,20 @@ output_dir = "./output"
 if not output_dir:
     output_dir = "."
 
-align_language = "en"
-if not align_language:
+# according to the whisperx, the align language should be same as transcribe language
+transcribe_language = "en"
+if not transcribe_language:
     align_language = "en"
 
 translation_target_lang = "cn"
 if not translation_target_lang:
     translation_target_lang = "cn"
 
-print(f"Your initial config:\n\t task={task}, audio_file={audio_file}, model_dir={model_dir}, output_dir={output_dir}")
-print(f"\talign_language={align_language}, translation_target_lang={translation_target_lang}")
+print(f"Your initial config:\n\ttask={task}, audio_file={audio_file}, model_dir={model_dir}, output_dir={output_dir}")
+print(f"\talign_language={transcribe_language}, translation_target_lang={translation_target_lang}")
 print("start processing")
+
+
 
 def whisperx_sub(output_format=output_format,
                  output_dir=output_dir,
@@ -50,14 +53,14 @@ def whisperx_sub(output_format=output_format,
     os.makedirs(output_dir, exist_ok=True)
 
     # transcibe the audio file to vector
-    transcribe_res = transcribe(audio_file, model_dir=model_dir)
+    transcribe_res = transcribe(audio_file, model_dir=model_dir, language="en")
 
     # store the vector for many format: srt json et al.
     convert_vector_to_Sub(transcribe_res,
                           audio_path=audio_file,
                           output_format=output_format,
                           output_dir=output_dir,
-                          align_language=align_language)
+                          align_language=transcribe_language)
 
     # your large model base url
 
@@ -73,7 +76,7 @@ def whisperx_sub(output_format=output_format,
                     translate_prompt="把这段英文字幕翻译成中文")
 
     # create subtitle output path and translation output path
-    print("\n\n")
+    print("\n")
     # read subtitle file: xxx.srt
     output_path = Path(output_dir)
     print(f'output_path: {output_path}')
@@ -85,17 +88,20 @@ def whisperx_sub(output_format=output_format,
         output_path = input("current output path is empty.  please enter the output path: ")
     full_output_path = output_path / ( audio_path.with_suffix(".srt").name )
     print(f'full_output_path: {full_output_path}')
-    print("\n\n")
+    print("\n")
 
+    """
     srt_content = srt_reader(str(full_output_path))
     ollama.chat_translate(srt_content)
 
-    print("\n\n")
+    print("\n")
     print(srt_content)
 
     # generate a new name with target translation language naming standard
     full_output_path = output_path / (audio_path.stem + SRT_STANDARD_NAME[f'{translation_target_lang}'] + ".srt")
     srt_writer(srt_content, str(full_output_path))
+
+    """
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':

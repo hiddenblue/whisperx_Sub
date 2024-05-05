@@ -4,3 +4,4 @@ output/*
 *.mp3
 
 demo.py
+__pycache__
