@@ -115,7 +115,7 @@ def translation(transcribe_result: list, data: dict, translate_prompt: str, base
     # here we send a message that set keepalive to False
 
 
-class OPENAI_General_model(LLM):
+class OPENAI_General_Interface(LLM):
     """
     A lot of LLM platforms provide Openai-format compatible interface including ChatGLM Qwen and Ollama
     So you can call this interface to utilize a lot LLM
@@ -185,5 +185,4 @@ class OPENAI_General_model(LLM):
             #     break
         # here we send a message that set keepalive to False
 
-
-##
+# def
