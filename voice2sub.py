@@ -89,7 +89,7 @@ def transcribe(audio_file:str,  # auduio file
                             return_char_alignments=False,
                             print_progress=True)
 
-    print(result["segments"])  # after alignment
+    # print(result["segments"])  # after alignment
     print(len(result["segments"]))
 
     # delete model if low on GPU resources

@@ -11,7 +11,7 @@ if not task:
 
 # 需要你配置的一些变量
 # 音频或者视频文件路径
-audio_file = "/home/chase/Documents/chatglm/whisperx_Sub/openai_sample.mp3"
+audio_file = "/home/chase/Documents/chatglm/whisperx_Sub/openai_function_calling_unlimited_potential.mp3"
 
 # faster-whisper模型文件文件夹的路径
 model_dir = "/home/chase/Documents/chatglm/whisperX"
@@ -59,14 +59,36 @@ def whisperx_sub(output_format=output_format,
     # transcibe the audio file to vector
     transcribe_res = transcribe(audio_file, model_dir=model_dir, language="en")
 
-    # here you can decide which to split a long sentence into several short sentences
-
-
     # store the vector for many format: srt json et al.
     convert_vector_to_Sub(transcribe_res,
                           audio_path=audio_file,
                           output_format=output_format,
                           output_dir=output_dir,
+                          align_language=transcribe_language)
+
+
+    # here you can decide whether to split a long sentence into several short sentences
+    # we use a deep copy empty [] to deal with new short sentences
+
+    if split_en_long_sentence:
+        segments_copy  = []
+        for index in range(len(transcribe_res['segments'])):
+                if len(transcribe_res['segments'][index]["words"]) < 23:
+                    segments_copy.append(transcribe_res['segments'][index])
+                else:
+                    splited_sentences = split_long(transcribe_res['segments'][index])
+                    segments_copy.extend(splited_sentences)
+
+        transcribe_res['segments'] = segments_copy
+
+
+    os.makedirs(output_dir+"/cut", exist_ok=True)
+
+    # store the vector for many format: srt json et al.
+    convert_vector_to_Sub(transcribe_res,
+                          audio_path=audio_file,
+                          output_format=output_format,
+                          output_dir=output_dir+"/cut",
                           align_language=transcribe_language)
 
     # your large model base url
