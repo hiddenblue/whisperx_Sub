@@ -98,14 +98,3 @@ def transcribe(audio_file:str,  # auduio file
     del model_a
 
     return result
-
-def Long_sentence_spliter(long_text:str) -> list:
-    """
-    :param long_text:str  This is really cool. Ominous, is it? Anyway, so here we go. So historically, if you wanted to do something like this, like for example, if you had a user and that was just chatting with GPT-4, they might ask, you know, hey, what's the weather like in Boston?
-    :return:  sentence_span:list  [(0, 45), (46, 99), (100, 136), (137, 227), (228, 297), (298, 351), (352, 399), (400, 457)]
-    long_text[0:45] 'This is really cool. Ominous, is it? Anyway, '
-    """
-
-    return []
-
-

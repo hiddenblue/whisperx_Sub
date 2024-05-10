@@ -1,5 +1,5 @@
 from voice2sub import transcribe
-from srt_util import convert_vector_to_Sub, srt_reader, srt_writer, SRT_STANDARD_NAME
+from srt_util import convert_vector_to_Sub, srt_reader, srt_writer, SRT_STANDARD_NAME, split_long
 from LLM_api import Ollama
 from pathlib import Path
 import os
@@ -39,6 +39,10 @@ translation_target_lang = "cn"
 if not translation_target_lang:
     translation_target_lang = "cn"
 
+split_en_long_sentence = True
+if not split_en_long_sentence:
+    split_en_long_sentence = False
+
 print(f"Your initial config:\n\ttask={task}, audio_file={audio_file}, model_dir={model_dir}, output_dir={output_dir}")
 print(f"\talign_language={transcribe_language}, translation_target_lang={translation_target_lang}")
 print("start processing")
@@ -54,6 +58,9 @@ def whisperx_sub(output_format=output_format,
 
     # transcibe the audio file to vector
     transcribe_res = transcribe(audio_file, model_dir=model_dir, language="en")
+
+    # here you can decide which to split a long sentence into several short sentences
+
 
     # store the vector for many format: srt json et al.
     convert_vector_to_Sub(transcribe_res,
