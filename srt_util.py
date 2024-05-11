@@ -1,6 +1,8 @@
 import os
 import re
 from whisperx.utils import (get_writer)
+from typing import Union
+import math
 
 def srt_reader(srt_file, debug=False) -> []:
     with open(srt_file, "r") as text_file:
@@ -81,23 +83,22 @@ def cal_preference(index_list:list, tokenized_sentences:str)->list:
         preference_value = 0
 
         # Coorinary Conjunction
+        # the token before that coord-conj must be ","
         if choice[0] == ('but', 'CC'): type_value = 10
         if choice[0] == ('and', 'CC'): type_value = 7
         if choice[0] == ('or', 'CC'): type_value = 6
 
         # Subordinary Conjunction
+        # the token before that coord-conj must be ","
         if choice[0] == ('if', 'IN'): type_value = 5
         if choice[0] == ('because', 'IN'): type_value = 5
         if choice[0] == ('so', 'IN'): type_value = 5
         if choice[0] == ('whether', 'IN'): type_value = 4
 
         distance_mapp_10 = (choice[1][1]+1) / sentences_length * 10
-        if distance_mapp_10 <= 5.0:
-            distance_value = distance_mapp_10
-        if distance_mapp_10 > 5:
-            distance_value = 10 - distance_mapp_10
+        distance_value = math.fabs(distance_mapp_10 - 5)
         preference_value = type_value * distance_value * distance_control_parameter
-        choice[1].append(preference_value)
+        choice[1].append(round(preference_value, 3))
 
     print(all_choice_list, "\n\n")
     return all_choice_list
@@ -189,7 +190,7 @@ def find_cut_pos(tokenized_sentences:str)->list:
     return cal_preference(index_list, tokenized_sentences)
 
 
-def rearrance_long_sentence(long_sentence:dict, choice:list)->tuple:
+def rearrance_long_sentence(long_sentence:dict, choice:list)->Union[tuple, None]:
     """
      but > and > or  if > because > whether    prefer the cut point that near the center of the long sentences.
     :param long_sentence:
@@ -236,7 +237,7 @@ def rearrance_long_sentence(long_sentence:dict, choice:list)->tuple:
     front_sentence = {"start": start_time, "end": end_time, "text": front_sentence_part, "words": front_words_part}
     behind_sentence = {"start": new_start_time, "end": new_end_time, "text":behind_sentence_part, "words": behind_words_part}
 
-    return (front_sentence, behind_sentence)
+    return front_sentence, behind_sentence
 
 def split_long(long_sentence:dict)->list:
     """
