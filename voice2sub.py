@@ -4,6 +4,8 @@ import torch
 
 import copy
 import numpy as np
+import re
+from SegmentType import TransSegment
 
 def transcribe(audio_file:str,  # auduio file
                device="cuda",
@@ -66,9 +68,15 @@ def transcribe(audio_file:str,  # auduio file
     result = model.transcribe(audio_file, batch_size=batch_size, chunk_size= chunk_size, print_progress=True, combined_progress=True)
     print(result["segments"])  # before alignment
     print(len(result["segments"]))
+    with open("transcribe_result.py", "w") as file:
+        file.write(str(result))
+
 
     # 保留一个transribe的结果，方便调试
     transcribe_result = copy.deepcopy(result)
+
+    result["segments"] = merge_continue_segment(result["segments"])
+
 
     # delete model if low on GPU resources
     gc.collect()
@@ -98,3 +106,28 @@ def transcribe(audio_file:str,  # auduio file
     del model_a
 
     return result
+
+
+
+def merge_continue_segment(segments):
+    """
+    This function can merge those sentence in transcribe_result which has not end like "?" "!" and "."
+    In order to better sent_tokenization and translation, we'd better merge them with their next sentence.
+    """
+    new_segments = []
+    index = 0
+    while (index < len(segments)):
+        seg = segments[index]
+        if (
+        regexpr := re.findall("""\w(?!\.|\?|\!)[,]*?$""", seg.get('text', None), flags=re.M | re.S)) and index < len(
+                segments) - 1:
+            print("matched", seg.get('text')[-10:])
+            trans_seg = TransSegment(seg)
+            new_segments.append((trans_seg + segments[index + 1]))
+            index += 2
+        else:
+            new_segments.append(seg)
+            print("not matched", seg.get('text')[-10:])
+            index += 1
+    print(len(new_segments))
+    return new_segments
