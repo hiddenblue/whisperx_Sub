@@ -6,6 +6,18 @@ import copy
 import numpy as np
 import re
 from SegmentType import TransSegment
+from nltk.corpus import state_union
+from nltk.tokenize import PunktSentenceTokenizer
+import nltk
+
+import logging
+
+
+# Assume the TransSegment class and other required functions/classes are defined
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 def transcribe(audio_file:str,  # auduio file
                device="cuda",
@@ -77,6 +89,10 @@ def transcribe(audio_file:str,  # auduio file
 
     result["segments"] = merge_continue_segment(result["segments"])
 
+    # rePunctuationer = RePunctuationer()
+
+    # result = rePunctuationer.re_punctuation(result)
+
 
     # delete model if low on GPU resources
     gc.collect()
@@ -111,23 +127,101 @@ def transcribe(audio_file:str,  # auduio file
 
 def merge_continue_segment(segments):
     """
-    This function can merge those sentence in transcribe_result which has not end like "?" "!" and "."
-    In order to better sent_tokenization and translation, we'd better merge them with their next sentence.
+    This function merges sentences in transcribe_result that don't end with ".", "?", or "!"
+    To improve sentence tokenization and translation, these sentences are merged with their following ones.
     """
+    if not segments:
+        logging.info("Input segments list is empty.")
+        return []
+
     new_segments = []
     index = 0
-    while (index < len(segments)):
-        seg = segments[index]
-        if (
-        regexpr := re.findall("""\w(?!\.|\?|\!)[,]*?$""", seg.get('text', None), flags=re.M | re.S)) and index < len(
-                segments) - 1:
-            print("matched", seg.get('text')[-10:])
-            trans_seg = TransSegment(seg)
-            new_segments.append((trans_seg + segments[index + 1]))
-            index += 2
+
+    while index < len(segments):
+        current_segment = segments[index]
+
+        # Check if the current segment meets the merging condition
+        if (match := re.findall("""[\w\d](?!\.|\?|\!)[,]*?$""", current_segment.get('text', ''), flags=re.M | re.S)):
+
+            try:
+                trans_seg = TransSegment(current_segment)
+                next_segment = segments[index + 1] if index + 1 < len(segments) else None
+                
+                # Ensure there's a next segment to merge and perform the merge
+                if next_segment:
+                    merged_segment = trans_seg + next_segment
+                    new_segments.append(merged_segment)
+                    logging.info(f"Merged segments: {trans_seg.text}, {next_segment.get('text')}")
+                    index += 2
+                else:
+                    # If there's no segment to merge, append the current segment to the result
+                    new_segments.append(trans_seg)
+                    logging.info(f"No next segment to merge with: {trans_seg.text}")
+                    index += 1
+            except Exception as e:
+                logging.error(f"Error processing segment {index}: {e}")
+                index += 1  # Continue processing the next segment
+
         else:
-            new_segments.append(seg)
-            print("not matched", seg.get('text')[-10:])
+            new_segments.append(current_segment)
+            logging.info(f"No match found for segment: {current_segment.get('text')[-10:]}")
             index += 1
-    print(len(new_segments))
+
+    logging.info(f"Processed {len(new_segments)} segments.")
     return new_segments
+
+
+class RePunctuationer:
+    """
+    This class can remove all punctuation incluing ",", "." , "!", "?", ":", ";" and "..."""
+    def __init__(self):
+        self.punctuation_list = ['.', ',', '!', '?', ':', ';', '...']
+        train_text = state_union.raw("2005-GWBush.txt")
+        self.custom_tokenizer = PunktSentenceTokenizer(train_text)
+    def re_punctuation(self, transcribe_result:dict)->dict:
+
+        from funasr import AutoModel
+        model = AutoModel(model="ct-punc")
+        
+        segments = transcribe_result["segments"]
+        for i in range(len(segments)):
+            segments[i]["text"] = self.remove_punctuation(segments[i]["text"])
+            segments[i]["text"] = model.generate(input=segments[i]["text"])[0].get("text", "")
+            print(segments[i]["text"])
+        del model
+        return transcribe_result
+    
+    def remove_punctuation(self, text:str)->str:
+        """
+        This function can remove all punctuation incluing ",", "." , "!", "?", ":", ";" and "..."
+        """
+        
+        tokenized_sentences = self.custom_tokenizer.tokenize(text)
+        print(tokenized_sentences)
+
+        for i in range(len(tokenized_sentences)):
+            tokenized_words = nltk.word_tokenize(tokenized_sentences[i])
+            tagged_words = nltk.pos_tag(tokenized_words)
+            # print("Before remove punctuation: ", tagged_words, end="\n\n")
+
+
+            for j in range(len(tagged_words)-1, 0, -1):
+                if tagged_words[j][0] in self.punctuation_list:
+                    tagged_words.remove(tagged_words[j])
+            if tagged_words[0][0] in self.punctuation_list:
+                tagged_words.remove(tagged_words[0])
+            
+            # print("After remove punctuation: ", tagged_words, end="\n\n")
+            target = ""
+            for word, tag in tagged_words:
+                # need more speical situation
+                if word in ["'s", "'d", "'ll", "'re", "'ve", "n't", "na", "ta", "'m"]:
+                    target += word
+                else:
+                    target += " " + word
+            tokenized_sentences[i] =  target.strip()
+
+        print(tokenized_sentences)
+
+        return " ".join(tokenized_sentences).strip()
+  
