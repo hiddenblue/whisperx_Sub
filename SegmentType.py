@@ -25,6 +25,9 @@ class TransSegment:
         return {'text': self.text, 'start': self.start, 'end': self.end}
 
     def __add__(self, other):
+
+        if not isinstance(other, (TransSegment, dict)):
+            raise TypeError
             # + other is TransSegment type
         if isinstance(other, TransSegment):
             if other.start < self.start:
@@ -35,6 +38,8 @@ class TransSegment:
                 start = self.start
                 end = other.end
                 text = self.text + other.text
+            return TransSegment({'text': text, 'start': start, 'end': end}).toDict()
+
             # + other is a raw segment dict
         elif isinstance(other, dict) and other.get('text') and other.get('start') and other.get('end'):
             if other.get('start') < self.start:
@@ -45,9 +50,10 @@ class TransSegment:
                 start = self.start
                 end = other.get('end')
                 text = self.text + other.get('text')
+            return TransSegment({'text': text, 'start': start, 'end': end}).toDict()
         else:
-            raise KeyError
-        return TransSegment({'text': text, 'start': start, 'end': end}).toDict()
+            raise TypeError("Unsupported type for addition. Expected TransSegment or dict with text, start, end keys")
+
 
 class AlignSegment(TransSegment):
     """
@@ -59,28 +65,33 @@ class AlignSegment(TransSegment):
         super().__init__(alignSegment)
         self.words = alignSegment.get('words')
 
-    def __toDict(self):
+    def toDict(self):
         return {'text': self.text, 'start': self.start, 'end': self.end, 'words': self.words}
 
     def __add__(self, other):
-
+        if not isinstance(other, (AlignSegment, dict)):
+            raise TypeError
         if isinstance(other, AlignSegment):
             if other.start < self.start:
-                raise KeyError
+                raise TypeError
             else:
                 start = self.start
                 end = other.end
                 text = self.text + other.text
                 words = self.words + other.words
-        if isinstance(other, dict):
+            return AlignSegment({'text': text, 'start': start, 'end': end, 'words': words})
+
+        elif isinstance(other, dict):
             if other.get("start") < self.start:
-                raise KeyError
+                raise TypeError
             else:
                 start = self.start
                 end = other.get("end")
                 text = self.text + other.get("text")
                 words = self.words + other.get("words")
-        return AlignSegment({'text': text, 'start': start, 'end': end, 'words': words}).toDict()
+            return AlignSegment({'text': text, 'start': start, 'end': end, 'words': words})
+        else:
+            raise TypeError("Unsupported type for addition. Expected TransSegment or dict with 'text', 'start', 'end', 'words' keys.")
 
 
 if __name__ == '__main__':
