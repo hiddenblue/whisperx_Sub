@@ -19,7 +19,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-def transcribe(audio_file: str,  # auduio file
+def sub_transcribe(audio_file: str,  # auduio file
                device="cuda",
                batch_size=16,
                language=None,
@@ -97,12 +97,15 @@ def transcribe(audio_file: str,  # auduio file
     del model
 
     print("**************" * 20)
+
+
+def sub_align(transcribe_result:dict,  audio_file: str, device="cuda"):
     # 2. Align whisper output
     # you can specify model_name here
-    model_a, metadata = whisperx.load_align_model(language_code=result["language"], device=device)
+    model_a, metadata = whisperx.load_align_model(language_code=transcribe_result["language"], device=device)
 
     print(">>Performing alignment...")
-    result = whisperx.align(result["segments"],
+    align_result = whisperx.align(transcribe_result["segments"],
                             model_a,
                             metadata,
                             audio_file,
@@ -111,14 +114,13 @@ def transcribe(audio_file: str,  # auduio file
                             print_progress=True)
 
     # print(result["segments"])  # after alignment
-    print(len(result["segments"]))
+    print(len(transcribe_result["segments"]))
 
     # delete model if low on GPU resources
     gc.collect()
     torch.cuda.empty_cache()
     del model_a
-
-    return result
+    return align_result
 
 
 def merge_continue_segment(segments):

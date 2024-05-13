@@ -1,4 +1,4 @@
-from voice2sub import transcribe
+from voice2sub import sub_transcribe, sub_align
 from srt_util import convert_vector_to_Sub, srt_reader, srt_writer, SRT_STANDARD_NAME, split_long
 from LLM_api import Ollama
 from pathlib import Path
@@ -39,38 +39,55 @@ translation_target_lang = "cn"
 if not translation_target_lang:
     translation_target_lang = "cn"
 
-split_en_long_sentence = True
-if not split_en_long_sentence:
-    split_en_long_sentence = False
+Is_split_en_long_sentence = False
+if not Is_split_en_long_sentence:
+    Is_split_en_long_sentence = False
 
 print(f"Your initial config:\n\ttask={task}, audio_file={audio_file}, model_dir={model_dir}, output_dir={output_dir}")
 print(f"\talign_language={transcribe_language}, translation_target_lang={translation_target_lang}")
 print("start processing")
 
+debug = False
 
 
 def whisperx_sub(output_format=output_format,
                  output_dir=output_dir,
                  task=task
                  ):
+    
     # check the output directory existence
     os.makedirs(output_dir, exist_ok=True)
 
-    # transcibe the audio file to vector
-    transcribe_res = transcribe(audio_file, model_dir=model_dir, language="en")
+    # transcribe the audio file to vector
+    transcribe_res = sub_transcribe(audio_file, model_dir=model_dir, language="en")
+
+    # align the subtitle to audio
+
+    align_result = sub_align(transcribe_res, audio_file, device="cuda")
 
     # store the vector for many format: srt json et al.
-    convert_vector_to_Sub(transcribe_res,
+    convert_vector_to_Sub(align_result,
                           audio_path=audio_file,
                           output_format=output_format,
                           output_dir=output_dir,
                           align_language=transcribe_language)
 
-
+    
     # here you can decide whether to split a long sentence into several short sentences
     # we use a deep copy empty [] to deal with new short sentences
 
-    if split_en_long_sentence:
+    # with open("./align_result.py", "w") as file:
+    #     file.write(str(align_result))
+
+
+
+    # if debug:
+    #     with open("./merge_result.py", "r") as file:
+    #        align_result = eval(file.read())
+
+
+
+    if Is_split_en_long_sentence:
         segments_copy  = []
         for index in range(len(transcribe_res['segments'])):
                 if len(transcribe_res['segments'][index]["words"]) < 23:
