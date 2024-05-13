@@ -5,3 +5,5 @@ output/*
 
 demo.py
 __pycache__
+.vscode
+*.txt
