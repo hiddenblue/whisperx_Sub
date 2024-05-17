@@ -3,6 +3,14 @@ import re
 from whisperx.utils import (get_writer)
 from typing import Union
 import math
+from collections import namedtuple
+from typing import NamedTuple, Union
+
+# we create a datetype for every token in sentences
+TokenTuple = namedtuple("Token", "word, tag")
+
+UNCOMPLETE_STRUCTURE = ["'s", "'m", "'re", "'d", "'ll", "'re", "n't"]
+
 
 def srt_reader(srt_file, debug=False) -> []:
     with open(srt_file, "r") as text_file:
@@ -35,7 +43,6 @@ def srt_writer(translation_result: list, output_path: str):
     except IOError as e:
         print(e)
 
-
 def convert_vector_to_Sub(transcribe_result: dict, audio_path, output_format: str, output_dir: str,
                           align_language: str):
     writer = get_writer(output_format, output_dir)
@@ -45,7 +52,6 @@ def convert_vector_to_Sub(transcribe_result: dict, audio_path, output_format: st
     transcribe_result["language"] = align_language
     writer(transcribe_result, audio_path, writer_args)
 
-
 SRT_STANDARD_NAME = {
     "cn": ".zh-CN"
 }
@@ -54,7 +60,8 @@ SRT_STANDARD_NAME = {
 
 import nltk
 
-def cal_preference(index_list:list, tokenized_sentences:str)->list:
+
+def cal_preference(index_list: list, tokenized_sentences: str) -> list:
     """
     this function is used to help calculate the preference of each choice
     different cut point has different type_value and distance_value
@@ -84,71 +91,122 @@ def cal_preference(index_list:list, tokenized_sentences:str)->list:
 
         # Coorinary Conjunction
         # the token before that coord-conj must be ","
-        if choice[0] == ('but', 'CC'): type_value = 10
-        if choice[0] == ('and', 'CC'): type_value = 7
-        if choice[0] == ('or', 'CC'): type_value = 6
+        if choice["conj"] == ('but', 'CC'): type_value = 10
+        if choice["conj"] == ('and', 'CC'): type_value = 7
+        if choice["conj"] == ('or', 'CC'): type_value = 6
 
         # Subordinary Conjunction
         # the token before that coord-conj must be ","
-        if choice[0] == ('if', 'IN'): type_value = 5
-        if choice[0] == ('because', 'IN'): type_value = 5
-        if choice[0] == ('so', 'IN'): type_value = 5
-        if choice[0] == ('whether', 'IN'): type_value = 4
+        if choice["conj"] == ('if', 'IN'): type_value = 5
+        if choice["conj"] == ('because', 'IN'): type_value = 5
+        if choice["conj"] == ('so', 'IN'): type_value = 5
+        if choice["conj"] == ('whether', 'IN'): type_value = 4
 
-        distance_mapp_10 = (choice[1][1]+1) / sentences_length * 10
-        distance_value = math.fabs(distance_mapp_10 - 5)
+        distance_mapp_10 = (choice["match_words"][1] + 1) / sentences_length * 10
+        distance_value = 5 - math.fabs(distance_mapp_10 - 5)
         preference_value = type_value * distance_value * distance_control_parameter
-        choice[1].append(round(preference_value, 3))
+        choice["match_words"].append(round(preference_value, 3))
 
     print(all_choice_list, "\n\n")
     return all_choice_list
 
-def regex_find(reg_expresssion:str, tagged_words:list)->list:
 
+def regex_find(reg_expresssion: str, tagged_words: list) -> list:
     chunkParser = nltk.RegexpParser(reg_expresssion)
     chunked_words = chunkParser.parse(tagged_words)
 
     print("Chunked_words: ")
-    print("\t", [i for i in chunked_words], "\n\n")
+    print("\t", [elem for elem in chunked_words], "\n\n")
 
     prefix_length_cut_point = 5
     suffix_length_cut_point = 5
     index_list = []
+    pos_dict = {}
     for subtree in chunked_words.subtrees():
+
         # if the subtree is the whole tree, bypass it
         if subtree.label() == "S":
             continue
 
-        if subtree.label() == "Conjunction":
+        if subtree.label() == "CoordinaryConj":
             print(subtree)
-            for i in subtree:
-                if i in [("and", "CC") ,("or", "CC"), ("but", "CC")]:
-                    if tagged_words.index(i) >= prefix_length_cut_point or tagged_words.index(i) <= len(chunked_words) - suffix_length_cut_point:
-                        index_list.append([i, subtree])
+            # you may get a subree like this
+            """Tree('CoordinaryConj', [('good', 'JJ'), ('enough', 'RB'), (',', ','), ('but', 'CC'), ('I', 'PRP')])"""
+            for cordconj in subtree:
+                if cordconj in [("and", "CC"), ("or", "CC"), ("but", "CC")]:
+                    pos = tagged_words.index(cordconj, pos_dict.get(cordconj, 0) + 1)
+                    # I am not sure whether to use "or" or "and". It all depends. I make a strict to the position of the subtree.
+                    if prefix_length_cut_point <= pos <= len(chunked_words) - suffix_length_cut_point:
+                        index_list.append({"conj": cordconj, "match_words": subtree})
+                    pos_dict[cordconj] = pos
                     continue
 
         # for subtree in chunked_words
-        if subtree.label() == "Suborinary_conj":
+        if subtree.label() == "SuborinaryConj":
             for subconj in subtree:
-                if subconj  in [("if", "IN"), ("because", "IN"), ("whether", "IN"), ("so", "IN")]:
-                    if tagged_words.index(subconj) >= prefix_length_cut_point or tagged_words.index(subconj) <= len(tagged_words) - suffix_length_cut_point:
-                        index_list.append([subconj,subtree])
+                if subconj in [("if", "IN"), ("because", "IN"), ("whether", "IN"), ("so", "IN")]:
+                    # 这里存在一个bug，如果conjunction在句子的开头，那么就会不符合条件 index只返回第一个符合的。
+                    # 如果有多个就会出错
+                    pos = tagged_words.index(subconj, pos_dict.get(subconj, 0) + 1)
+                    if prefix_length_cut_point <= pos <= len(tagged_words) - suffix_length_cut_point:
+                        index_list.append({"conj": subconj, "match_words": subtree})
+                    pos_dict[subconj] = pos
                     continue
+
+    """
+    [
+    [('but', 'CC'), Tree('CoordinaryConj', [('good', 'JJ'), ('enough', 'RB'), (',', ','), ('but', 'CC'), ('I', 'PRP')])],
+    [('because', 'IN'), Tree('SuborinaryConj', [('with', 'IN'), ('this', 'DT'), (',', ','), ('because', 'IN'), ('this', 'DT')])]]
+    """
+
+    # besides, we need to deal with some minor cases.  "'s" "n't" and so on
+    for i, chunk in enumerate(index_list):
+        conj = chunk.get("conj")
+        match_words = chunk.get("match_words")
+        print(conj)
+        print(match_words)
+        chunk["match_words"] = tupleTreeToTokenlist(match_words)
+        # tackle with case: match_words start with 's et at.
+        if (first_word := chunk["match_words"][0][0]) in UNCOMPLETE_STRUCTURE or first_word == ',':
+            # chunk["match_words"].insert(0, tagged_words.)
+            match_words = chunk["match_words"][1:]
+
+        index_list[i]["match_words"] = tupleTreeToTokenlist(match_words)
+
     print(index_list, "\n\n")
     return index_list
 
-def find_cut_pos(tokenized_sentences:str)->list:
+
+def tupleToToken(tagged_word: tuple) -> Union[TokenTuple, tuple]:
+    if isinstance(tagged_word, TokenTuple):
+        return tagged_word
+    return TokenTuple(tagged_word[0], tagged_word[1])
+
+
+def tupleTreeToTokenlist(tree: nltk.Tree) -> list:
+    """
+    this function is used to convert the tree to a list of token
+    :param tree:
+    :return:
+    """
+    token_list = []
+    for elem in tree:
+        if isinstance(elem, nltk.Tree):
+            token_list.extend(tupleTreeToTokenlist(elem))
+        else:
+            token_list.append(tupleToToken(elem))
+    return token_list
+
+
+def find_cut_pos(tokenized_sentences: str) -> list:
     """
     This function could help you find the split pointer of a long sentence
     which you expected to be cut into two part
     :param tokenized_sentences: the sentence that has be tokenized with "? . ! " symobol
-
     """
     # the input sentence has alreay be tokenized, so we don't segment it.
-    print("The long sentences: ")
+    print("The tokenized_sentences: ")
     print("\t", tokenized_sentences, end="\n\n")
-
-    # text_part = long_sentence["text"]
 
     # Tokenized the sentences
     tokenized_words = nltk.word_tokenize(tokenized_sentences)
@@ -160,9 +218,10 @@ def find_cut_pos(tokenized_sentences:str)->list:
     print("Tagged_words: ")
     print("\t", tagged_words, end="\n\n")
 
-    # this regular expression could be better. I write two rule to extract  Conjunction and subor_conj, repectively
-    split_regex = r"""Conjunction: {<RB.*?|JJ.*?|VB.*?|IN?|MD?|NN.?>?<,><CC><DT>?<RB.?|VBZ?|JJ.|IN>*<PRP>?}
-                      Suborinary_conj:  {<IN>?<JJ.>*?<IN>?<NN|NNS|NNP|NNPS|RB|RP|DT>*?<,><IN><DT|IN>?<RB.?|VBZ?|JJ.>*<PRP>?<VB.|MD>}
+    # this regular expression could be better. I write two rule to extract  Coordinary Conjunction  and Subordinary Conjunction, repectively
+    # revise the previous regular expression to match more unit before the ','
+    split_regex = r"""CoordinaryConj: {<.*>{2,3}<,><CC><.*>}
+                      SuborinaryConj: {<.*>{2,3}<,><IN><.*>}
                    """
 
     # calling the regxr funcction
@@ -171,26 +230,36 @@ def find_cut_pos(tokenized_sentences:str)->list:
     """
     so you get a conj and subordinary conj positon dict like this:
     next we need to find the cut pointer and each conj and subordinary conj
-    [[('and', 'CC'), Tree('Conjunction', [('have', 'VBP'), (',', ','), ('and', 'CC'), ('this', 'DT'), ('is', 'VBZ')])],
-    [('and', 'CC'), Tree('Conjunction', [('used', 'VBD'), (',', ','), ('and', 'CC'), ('this', 'DT'), ('is', 'VBZ'), ('like', 'IN')])],
-    [('because', 'IN'), Tree('Suborinary_conj', [('bummer', 'NN'), (',', ','), ('because', 'IN'), ('like', 'IN'), ('I', 'PRP'), ('said', 'VBD')])]] 
+    [
+    {'conj': ('but', 'CC'), 'match_words': [Token(word='good', tag='JJ'), Token(word='enough', tag='RB'), Token(word=',', tag=','), Token(word='but', tag='CC'), Token(word='I', tag='PRP')]},
+    {'conj': ('because', 'IN'), 'match_words': [Token(word='with', tag='IN'), Token(word='this', tag='DT'), Token(word=',', tag=','), Token(word='because', tag='IN'), Token(word='this', tag='DT')]}
+    ]
     """
 
-    if  index_list:
+    # convert token to a single sentence
+    if index_list:
         for single_ret in index_list:
             target = ""
-            for index in range(len(single_ret[1])):
+            for index in range(len(single_ret["match_words"])):
+                position = None
                 # because in transcribe_res wors, the ',' and "'s" is part of a word, not a individual unit
-                if (word := single_ret[1][index][0]) == ',' or word == "'s":
+                if (word := single_ret["match_words"][index].word) in UNCOMPLETE_STRUCTURE or word == ',':
                     target += word
                 else:
                     target += " " + word
-            single_ret[1] = [target.strip(), tokenized_sentences.find(target)+target.find(single_ret[0][0])]
+            # 这里面即便有's 这些不完整的成分，还是能够找到正确的位置。
+            outer_position = tokenized_sentences.find(target)
+
+            if outer_position == -1:
+                print(f"Not found position for \" {target} \"")
+            else:
+                print(f"Found position for \" {target} \"", outer_position)
+            single_ret["match_words"] = [target.strip(), outer_position + target.find(single_ret["conj"][0])]
 
     return cal_preference(index_list, tokenized_sentences)
 
 
-def rearrance_long_sentence(long_sentence:dict, choice:list)->Union[tuple, None]:
+def rearrance_long_sentence(long_sentence: dict, choice: list) -> Union[tuple, None]:
     """
      but > and > or  if > because > whether    prefer the cut point that near the center of the long sentences.
     :param long_sentence:
@@ -199,47 +268,49 @@ def rearrance_long_sentence(long_sentence:dict, choice:list)->Union[tuple, None]
 
     # [('and', 'CC'), ['have, and this is', 28, 5.5019762845849804]]
 
-    match_list = choice[1][0].split(" ")
+    match_list = choice["match_words"][0].split(" ")
     word = []
     start_time = long_sentence["start"]
     end_time = 0
     words = long_sentence["words"]
 
-    front_sentence_part = long_sentence["text"][0:choice[1][1]]
-    behind_sentence_part = long_sentence["text"][choice[1][1]:]
+    front_sentence_part = long_sentence["text"][0:choice["match_words"][1]]
+    behind_sentence_part = long_sentence["text"][choice["match_words"][1]:]
 
-    for time_word_index in range(len(words)):
+    for outer_word_index in range(len(words)):
         for match_word_index in range(len(match_list)):
-            if (word_out:= words[time_word_index]["word"]) == (word_inner := match_list[match_word_index]) or \
-                word_out == word_inner + ",":
-                time_word_index  += 1
+            if (word_out := words[outer_word_index]["word"]) == (word_inner := match_list[match_word_index]) or \
+                    word_out == word_inner + ",":
+                outer_word_index += 1
                 continue
             else:
-                time_word_index -= match_word_index
+                outer_word_index -= match_word_index
                 break
-        if match_word_index == len(match_list)-1:
-            time_word_index -= match_word_index + 1
+        if match_word_index == len(match_list) - 1:
+            outer_word_index -= match_word_index + 1
             break
 
-    if (match_word_index != len(match_list)-1):
+    if (match_word_index != len(match_list) - 1):
         return None
 
     # find it
-    inner_position = match_list.index(choice[0][0])
-    actual_position = time_word_index + inner_position
+    inner_position = match_list.index(choice["conj"][0])
+    actual_position = outer_word_index + inner_position
 
-    end_time = words[actual_position-1]["end"]
+    end_time = words[actual_position - 1]["end"]
     new_start_time = words[actual_position]["start"]
-    new_end_time = words[len(words)-1]["end"]
+    new_end_time = words[len(words) - 1]["end"]
 
     front_words_part = words[:actual_position]
-    behind_words_part= words[actual_position:]
+    behind_words_part = words[actual_position:]
     front_sentence = {"start": start_time, "end": end_time, "text": front_sentence_part, "words": front_words_part}
-    behind_sentence = {"start": new_start_time, "end": new_end_time, "text":behind_sentence_part, "words": behind_words_part}
+    behind_sentence = {"start": new_start_time, "end": new_end_time, "text": behind_sentence_part,
+                       "words": behind_words_part}
 
     return front_sentence, behind_sentence
 
-def split_long(long_sentence:dict)->list:
+
+def split_long(long_sentence: dict) -> list:
     """
     :param long_sentence: a sentence that would be splited.
     :return:
@@ -247,24 +318,26 @@ def split_long(long_sentence:dict)->list:
 
     # 这个句子是253 个characters， 大约25秒？
     if (s_lenght := len(long_sentence["text"])) < 140:
-        print("This sentence doesn't  need to be segmentated\n\n")
+        print(f"This length of this sentence is: {s_lenght}. It doesn't  need to be segmentated")
+        print(long_sentence["text"], "\n\n")
         return [long_sentence]
 
-    print(f"This length of this sentence is: {s_lenght} > 140 characters, So it will be splited\n\n")
+    print(f"This length of this sentence is: {s_lenght} > 140 characters, So it will be splited")
+    print(long_sentence["text"], "\n\n")
 
-
+    # The input sentence has alreay be tokenized, so we don't segment it.
     tokenized_sentences = long_sentence["text"]
 
     # we preserve the context of the cut position in order to failitite manually judge whether excute it
     all_choice_list = find_cut_pos(tokenized_sentences)
     print('All_choice_list: ')
-    print("\t",all_choice_list, end="\n\n")
+    print("\t", all_choice_list, end="\n\n")
 
     # sort by preference_value
-    all_choice_list.sort(key=lambda x: x[1][2], reverse=True)
+    all_choice_list.sort(key=lambda x: x["match_words"][2], reverse=True)
 
     print("All_choice_list.sorted: ")
-    print("\t",all_choice_list, end="\n\n")
+    print("\t", all_choice_list, end="\n\n")
 
     choice = []
     if all_choice_list:
@@ -273,8 +346,7 @@ def split_long(long_sentence:dict)->list:
         ## failed to found cut point, So return itself directly
         return [long_sentence]
 
-
-    front_sentence , behind_sentence = rearrance_long_sentence(long_sentence, choice)
+    front_sentence, behind_sentence = rearrance_long_sentence(long_sentence, choice)
     # 这个句子是253 个characters， 大约25秒？
 
     ret_sentence = []
@@ -286,18 +358,6 @@ def split_long(long_sentence:dict)->list:
         ret_sentence.append(j)
 
     return ret_sentence
-
-
-
-# def merge_sentence(splited_sentences:list, transcribe_res:list, index):
-#     """
-#     This function can merge some short sentence generated by split_long() back into transcibe_res
-#     """
-#
-#     for i in range(len(splited_sentences)-1, -1, -1):
-#         transcribe_res.insert(0, splited_sentences[i])
-#
-#     return transcribe_res
 
 
 """
@@ -323,10 +383,24 @@ if __name__ == "__main__":
                      'words': [{'word': 'I', 'start': 38.522, 'end': 38.582, 'score': 0.716}, {'word': "don't", 'start': 38.642, 'end': 38.842, 'score': 0.69}, {'word': 'think', 'start': 38.902, 'end': 39.142, 'score': 0.698}, {'word': 'that', 'start': 39.222, 'end': 39.382, 'score': 0.826}, {'word': 'their', 'start': 39.442, 'end': 39.763, 'score': 0.771}, {'word': 'documentation', 'start': 40.083, 'end': 40.743, 'score': 0.858}, {'word': 'is', 'start': 40.803, 'end': 40.904, 'score': 0.568}, {'word': 'good', 'start': 41.064, 'end': 41.204, 'score': 0.868}, {'word': 'enough,', 'start': 41.224, 'end': 41.444, 'score': 0.76}, {'word': 'but', 'start': 42.585, 'end': 42.785, 'score': 0.869}, {'word': 'I', 'start': 43.125, 'end': 43.186, 'score': 0.931}, {'word': 'think', 'start': 43.226, 'end': 43.386, 'score': 0.893}, {'word': 'it', 'start': 43.726, 'end': 43.786, 'score': 0.882}, {'word': 'leaves', 'start': 43.866, 'end': 44.066, 'score': 0.767}, {'word': 'a', 'start': 44.086, 'end': 44.126, 'score': 0.499}, {'word': 'little', 'start': 44.146, 'end': 44.326, 'score': 0.846}, {'word': 'bit', 'start': 44.346, 'end': 44.507, 'score': 0.794}, {'word': 'to', 'start': 44.547, 'end': 44.647, 'score': 0.62}, {'word': 'be', 'start': 44.707, 'end': 45.027, 'score': 0.837}, {'word': 'desired,', 'start': 46.288, 'end': 46.769, 'score': 0.866}, {'word': 'I', 'start': 46.829, 'end': 46.869, 'score': 0.937}, {'word': 'suppose,', 'start': 46.929, 'end': 47.389, 'score': 0.853}, {'word': 'in', 'start': 48.39, 'end': 48.47, 'score': 0.976}, {'word': 'thinking', 'start': 48.51, 'end': 48.77, 'score': 0.778}, {'word': 'about', 'start': 48.81, 'end': 49.09, 'score': 0.826}, {'word': 'what', 'start': 49.211, 'end': 49.331, 'score': 0.973}, {'word': 'are', 'start': 49.371, 'end': 49.451, 'score': 0.808}, {'word': 'all', 'start': 49.471, 'end': 49.611, 'score': 0.742}, {'word': 'the', 'start': 49.631, 'end': 49.711, 'score': 0.797}, {'word': 'things', 'start': 49.751, 'end': 49.951, 'score': 0.772}, {'word': 'that', 'start': 49.971, 'end': 50.051, 'score': 0.893}, {'word': 'we', 'start': 50.091, 'end': 50.191, 'score': 0.882}, {'word': 'really', 'start': 50.251, 'end': 50.472, 'score': 0.806}, {'word': 'can', 'start': 50.492, 'end': 50.612, 'score': 0.998}, {'word': 'do', 'start': 50.672, 'end': 50.772, 'score': 0.998}, {'word': 'with', 'start': 50.812, 'end': 50.932, 'score': 0.794}, {'word': 'this,', 'start': 50.952, 'end': 51.092, 'score': 0.951}, {'word': 'because', 'start': 51.112, 'end': 51.312, 'score': 0.494}, {'word': 'this', 'start': 51.332, 'end': 51.452, 'score': 0.423}, {'word': 'is', 'start': 51.472, 'end': 51.553, 'score': 0.395}, {'word': 'unbelievably', 'start': 51.713, 'end': 52.193, 'score': 0.893}, {'word': 'powerful.', 'start': 52.233, 'end': 52.613, 'score': 0.836}]
                     }
 
-    ret_sentences = split_long(long_sentence2)
+    with open("./align_result.py", "r") as file:
+        align_result = eval(file.read())
 
-    for i in ret_sentences:
-        print(i['text'], end="\n\n")
+        for i in align_result["segments"]:
+            split_long(i)
 
+    c = ("and", "CC")
 
+    print(tupleToToken(c))
 
+    and_token = TokenTuple("and", "CC")
+
+    list = []
+
+    list.append(TokenTuple("or", "CC"))
+    list.append(TokenTuple("but", "CC"))
+
+    print(and_token)
+    print(and_token.word, and_token.tag)
+
+    # split_ret = split_long(long_sentence)

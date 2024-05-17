@@ -97,6 +97,7 @@ def sub_transcribe(audio_file: str,  # auduio file
     del model
 
     print("**************" * 20)
+    return result
 
 
 def sub_align(transcribe_result:dict,  audio_file: str, device="cuda"):

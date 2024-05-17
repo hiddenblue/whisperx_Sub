@@ -1,5 +1,5 @@
 from voice2sub import sub_transcribe, sub_align
-from srt_util import convert_vector_to_Sub, srt_reader, srt_writer, SRT_STANDARD_NAME, split_long
+from srt_util import srt_reader, srt_writer, SRT_STANDARD_NAME, split_long, convert_vector_to_Sub
 from LLM_api import Ollama
 from pathlib import Path
 import os
@@ -41,7 +41,7 @@ if not translation_target_lang:
 
 Is_split_en_long_sentence = False
 if not Is_split_en_long_sentence:
-    Is_split_en_long_sentence = False
+    split_en_long_sentence = False
 
 print(f"Your initial config:\n\ttask={task}, audio_file={audio_file}, model_dir={model_dir}, output_dir={output_dir}")
 print(f"\talign_language={transcribe_language}, translation_target_lang={translation_target_lang}")
