@@ -3,6 +3,7 @@ from http import HTTPStatus
 import requests
 import json
 from openai import OpenAI
+import time
 
 
 # local LLM server
@@ -42,7 +43,7 @@ class Ollama(LLM):
         if self.mode == "chat":
 
             if not system_prompt:
-                self.system_prompt = "you are a helpful subtitle translator"
+                self.system_prompt = "you are a professional subtitle translator"
 
             self.data = {
                 "model": f"{model_name}",
@@ -66,23 +67,18 @@ class Ollama(LLM):
     def completion_translate(self):
         pass
 
-    def close_model(self):
+    @staticmethod
+    def close_model(model_name, baseurl):
         """
         By sending a package with empty message or set the "keepalive" to "0".
         You can close the running model and retrieve the GPU memory
         :return:
         """
-        self.data = {
-            "model": f"{self.model_name}",
-            "messages": [
-                {
-                    "role": "system",
-                    "content": f"{self.system_prompt}",
-                }
-            ],
-            "stream": False,
-            "keepalive": "0"
-        }
+        data = {"model": model_name, "keep_alive": 0}
+        response = requests.post(baseurl, json=data)
+        print(response.content)
+        time.sleep(1)
+
 
 
 def translation(transcribe_result: list, data: dict, translate_prompt: str, base_url):
