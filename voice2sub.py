@@ -87,9 +87,11 @@ def sub_transcribe(audio_file: str,  # auduio file
 
     result["segments"] = merge_continue_segment(result["segments"])
 
-    # rePunctuationer = RePunctuationer()
+    rePunctuationer = RePunctuationer(FullStopModel())
+    result = rePunctuationer.re_punctuation(result)
 
-    # result = rePunctuationer.re_punctuation(result)
+    with open("after_re_punctuation.py", "w") as file:
+        file.write(str(result))
 
     # delete model if low on GPU resources
     gc.collect()
@@ -224,7 +226,7 @@ class RePunctuationer:
         """
 
         tokenized_sentences = self.custom_tokenizer.tokenize(text)
-        print(tokenized_sentences)
+        # print(tokenized_sentences)
 
         for i in range(len(tokenized_sentences)):
             tokenized_words = nltk.word_tokenize(tokenized_sentences[i])
@@ -247,6 +249,6 @@ class RePunctuationer:
                     target += " " + word
             tokenized_sentences[i] = target.strip()
 
-        print(tokenized_sentences)
+        # print(tokenized_sentences)
 
         return " ".join(tokenized_sentences).strip()

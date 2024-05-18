@@ -91,16 +91,17 @@ def cal_preference(index_list: list, tokenized_sentences: str) -> list:
 
         # Coorinary Conjunction
         # the token before that coord-conj must be ","
-        if choice["conj"] == ('but', 'CC'): type_value = 10
-        if choice["conj"] == ('and', 'CC'): type_value = 7
-        if choice["conj"] == ('or', 'CC'): type_value = 6
+        if choice["conj"] in [('But', 'CC'), ('but', 'CC')]: type_value = 10
+        if choice["conj"] in [('And', 'CC'), ('and', 'CC')]: type_value = 7
+        if choice["conj"] in [('Or', 'CC'), ('or', 'CC')]: type_value = 5
 
         # Subordinary Conjunction
         # the token before that coord-conj must be ","
-        if choice["conj"] == ('if', 'IN'): type_value = 5
-        if choice["conj"] == ('because', 'IN'): type_value = 5
-        if choice["conj"] == ('so', 'IN'): type_value = 5
-        if choice["conj"] == ('whether', 'IN'): type_value = 4
+        if choice["conj"] in [('If', 'IN'), ('if', 'IN')]: type_value = 5
+        if choice["conj"] in [('Because', 'IN'),('because', 'IN')]: type_value = 5
+        if choice["conj"] in [('So', 'IN'),('so', 'IN')]: type_value = 5
+        if choice["conj"] in [('Whether', 'IN'),('whether', 'IN')]: type_value = 4
+        # if choice["conj"] in [('Like', 'IN'),('like', 'IN')]: type_value = 3
 
         distance_mapp_10 = (choice["match_words"][1] + 1) / sentences_length * 10
         distance_value = 5 - math.fabs(distance_mapp_10 - 5)
@@ -133,10 +134,10 @@ def regex_find(reg_expresssion: str, tagged_words: list) -> list:
             # you may get a subree like this
             """Tree('CoordinaryConj', [('good', 'JJ'), ('enough', 'RB'), (',', ','), ('but', 'CC'), ('I', 'PRP')])"""
             for cordconj in subtree:
-                if cordconj in [("and", "CC"), ("or", "CC"), ("but", "CC")]:
+                if cordconj in [("and", "CC") ,("or", "CC"), ("but", "CC"), ("And", "CC"), ("Or", "CC"), ("But", "CC")] and subtree[subtree.index(cordconj)-1] == (',', ',') :
                     pos = tagged_words.index(cordconj, pos_dict.get(cordconj, 0) + 1)
                     # I am not sure whether to use "or" or "and". It all depends. I make a strict to the position of the subtree.
-                    if prefix_length_cut_point <= pos <= len(chunked_words) - suffix_length_cut_point:
+                    if prefix_length_cut_point <= pos <= len(tagged_words) - suffix_length_cut_point:
                         index_list.append({"conj": cordconj, "match_words": subtree})
                     pos_dict[cordconj] = pos
                     continue
@@ -144,7 +145,7 @@ def regex_find(reg_expresssion: str, tagged_words: list) -> list:
         # for subtree in chunked_words
         if subtree.label() == "SuborinaryConj":
             for subconj in subtree:
-                if subconj in [("if", "IN"), ("because", "IN"), ("whether", "IN"), ("so", "IN")]:
+                if subconj  in [("if", "IN"), ("because", "IN"), ("whether", "IN"), ("so", "IN"), ("If", "IN"), ("Because", "IN"),  ("Whether", "IN"), ("So", "IN")] and subtree[subtree.index(subconj)-1] == (',', ',') :
                     # 这里存在一个bug，如果conjunction在句子的开头，那么就会不符合条件 index只返回第一个符合的。
                     # 如果有多个就会出错
                     pos = tagged_words.index(subconj, pos_dict.get(subconj, 0) + 1)
@@ -152,7 +153,22 @@ def regex_find(reg_expresssion: str, tagged_words: list) -> list:
                         index_list.append({"conj": subconj, "match_words": subtree})
                     pos_dict[subconj] = pos
                     continue
+    # add logic to match xxxx And xxxx
 
+    Speical_token = ("And", "CC")
+
+    if not index_list:
+        pos_dict = {}
+        for index, tagged_word in enumerate(tagged_words):
+            if tagged_word != ("And", "CC"):
+                continue
+            else:
+                # some new case, The "And" is placed at the begin the of sentence, So should start at -1+1
+                pos = tagged_words.index(Speical_token, pos_dict.get(Speical_token, -1)+1)
+                if prefix_length_cut_point <= pos <= len(tagged_words) - suffix_length_cut_point:
+                   if tagged_words[index-1] != (",", ",") and tagged_words[index+1] != (",", ","):
+                       index_list.append({"conj": Speical_token, "match_words": tagged_words[index-3:index+2]})
+                pos_dict[Speical_token] = pos
     """
     [
     [('but', 'CC'), Tree('CoordinaryConj', [('good', 'JJ'), ('enough', 'RB'), (',', ','), ('but', 'CC'), ('I', 'PRP')])],
@@ -297,9 +313,15 @@ def rearrance_long_sentence(long_sentence: dict, choice: list) -> Union[tuple, N
     inner_position = match_list.index(choice["conj"][0])
     actual_position = outer_word_index + inner_position
 
-    end_time = words[actual_position - 1]["end"]
-    new_start_time = words[actual_position]["start"]
-    new_end_time = words[len(words) - 1]["end"]
+    # deal with some case that only a number in the word without start_time and end_time
+    if not (end_time:=words[actual_position-1].get("end")):
+        end_time = words[actual_position].get("start")-0.1
+
+    if not (new_start_time:=words[actual_position].get("start")):
+        new_start_time = words[actual_position-1].get("end")+0.1
+
+    if not (new_end_time := words[-1].get("end")):
+        new_end_time = words[len(words)-2].get("end")
 
     front_words_part = words[:actual_position]
     behind_words_part = words[actual_position:]
@@ -317,12 +339,12 @@ def split_long(long_sentence: dict) -> list:
     """
 
     # 这个句子是253 个characters， 大约25秒？
-    if (s_lenght := len(long_sentence["text"])) < 140:
+    if (s_lenght := len(long_sentence["text"])) < 130:
         print(f"This length of this sentence is: {s_lenght}. It doesn't  need to be segmentated")
         print(long_sentence["text"], "\n\n")
         return [long_sentence]
 
-    print(f"This length of this sentence is: {s_lenght} > 140 characters, So it will be splited")
+    print(f"This length of this sentence is: {s_lenght} > 130 characters, So it will be splited")
     print(long_sentence["text"], "\n\n")
 
     # The input sentence has alreay be tokenized, so we don't segment it.
