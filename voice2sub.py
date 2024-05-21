@@ -1,3 +1,5 @@
+from typing import List, Dict, Any
+
 import whisperx
 import gc
 import torch
@@ -5,7 +7,7 @@ import torch
 import copy
 import numpy as np
 import re
-from SegmentType import TransSegment
+from SegmentType import TransSegment, SegmentMerge
 from nltk.corpus import state_union
 from nltk.tokenize import PunktSentenceTokenizer
 import nltk
@@ -85,7 +87,7 @@ def sub_transcribe(audio_file: str,  # auduio file
     # 保留一个transribe的结果，方便调试
     transcribe_result = copy.deepcopy(result)
 
-    result["segments"] = merge_continue_segment(result["segments"])
+    result["segments"] = SegmentMerge.merge_continue_segment(result["segments"])
 
     rePunctuationer = RePunctuationer(FullStopModel())
     result = rePunctuationer.re_punctuation(result)
@@ -124,53 +126,6 @@ def sub_align(transcribe_result:dict,  audio_file: str, device="cuda"):
     torch.cuda.empty_cache()
     del model_a
     return align_result
-
-
-def merge_continue_segment(segments):
-    """
-    This function merges sentences in transcribe_result that don't end with ".", "?", or "!"
-    To improve sentence tokenization and translation, these sentences are merged with their following ones.
-    """
-    if not segments:
-        logging.info("Input segments list is empty.")
-        return []
-
-    new_segments = []
-    index = 0
-
-    while index < len(segments):
-        current_segment = segments[index]
-
-        # Check if the current segment meets the merging condition
-        if (match := re.findall("""[\w\d](?!\.|\?|\!)[,]*?$""", current_segment.get('text', ''), flags=re.M | re.S)):
-
-            try:
-                trans_seg = TransSegment(current_segment)
-                next_segment = segments[index + 1] if index + 1 < len(segments) else None
-
-                # Ensure there's a next segment to merge and perform the merge
-                if next_segment:
-                    merged_segment = trans_seg + next_segment
-                    new_segments.append(merged_segment)
-                    logging.info(f"Merged segments: {trans_seg.text}, {next_segment.get('text')}")
-                    index += 2
-                else:
-                    # If there's no segment to merge, append the current segment to the result
-                    new_segments.append(trans_seg)
-                    logging.info(f"No next segment to merge with: {trans_seg.text}")
-                    index += 1
-            except Exception as e:
-                logging.error(f"Error processing segment {index}: {e}")
-                index += 1  # Continue processing the next segment
-
-        else:
-            new_segments.append(current_segment)
-            logging.info(f"No match found for segment: {current_segment.get('text')[-10:]}")
-            index += 1
-
-    logging.info(f"Processed {len(new_segments)} segments.")
-    return new_segments
-
 
 class PunctuationGenerator(ABC):
 
