@@ -299,6 +299,11 @@ def rearrance_long_sentence(long_sentence: dict, choice: list) -> Union[tuple, N
                     word_out == word_inner + ",":
                 outer_word_index += 1
                 continue
+            # deal with some case that the last word is "it" and the next word is "'s" and so on
+            # this can lead to some problems
+            elif match_word_index == len(match_list) - 1 and word_out.removeprefix(word_inner) in UNCOMPLETE_STRUCTURE:
+                outer_word_index += 1
+                continue
             else:
                 outer_word_index -= match_word_index
                 break
