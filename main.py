@@ -39,7 +39,7 @@ translation_target_lang = "cn"
 if not translation_target_lang:
     translation_target_lang = "cn"
 
-Is_split_en_long_sentence = False
+Is_split_en_long_sentence = True
 if not Is_split_en_long_sentence:
     split_en_long_sentence = False
 
@@ -48,6 +48,9 @@ print(f"\talign_language={transcribe_language}, translation_target_lang={transla
 print("start processing")
 
 debug = False
+
+# turnoff running model
+Ollama.close_model(model_name="qwen:32b-chat-v1.5-q5_K_M", baseurl="http://localhost:11434/api/generate")
 
 
 def whisperx_sub(output_format=output_format,
@@ -76,8 +79,8 @@ def whisperx_sub(output_format=output_format,
     # here you can decide whether to split a long sentence into several short sentences
     # we use a deep copy empty [] to deal with new short sentences
 
-    # with open("./align_result.py", "w") as file:
-    #     file.write(str(align_result))
+    with open("./align_result.py", "w") as file:
+        file.write(str(align_result))
 
 
 
@@ -89,20 +92,20 @@ def whisperx_sub(output_format=output_format,
 
     if Is_split_en_long_sentence:
         segments_copy  = []
-        for index in range(len(transcribe_res['segments'])):
-                if len(transcribe_res['segments'][index]["words"]) < 23:
-                    segments_copy.append(transcribe_res['segments'][index])
+        for index in range(len(align_result['segments'])):
+                if len(align_result['segments'][index]["words"]) < 16:
+                    segments_copy.append(align_result['segments'][index])
                 else:
-                    splited_sentences = split_long(transcribe_res['segments'][index])
+                    splited_sentences = split_long(align_result['segments'][index])
                     segments_copy.extend(splited_sentences)
 
-        transcribe_res['segments'] = segments_copy
+        align_result['segments'] = segments_copy
 
 
     os.makedirs(output_dir+"/cut", exist_ok=True)
 
     # store the vector for many format: srt json et al.
-    convert_vector_to_Sub(transcribe_res,
+    convert_vector_to_Sub(align_result,
                           audio_path=audio_file,
                           output_format=output_format,
                           output_dir=output_dir+"/cut",
@@ -111,7 +114,7 @@ def whisperx_sub(output_format=output_format,
     # your large model base url
 
     base_url = "http://localhost:11434/api/chat"
-    translation_model_name = "qwen:32b"
+    translation_model_name = "qwen:32b-chat-v1.5-q5_K_M"
     translation_prompt = ""
 
     # initial your LLM
@@ -119,7 +122,7 @@ def whisperx_sub(output_format=output_format,
                     api_key="",
                     base_url=base_url,
                     mode="chat",
-                    translate_prompt="把这段英文字幕翻译成中文")
+                    translate_prompt="Translate this English sentence into Chinese. Keep the puncutaion if possible.")
 
     # create subtitle output path and translation output path
     print("\n")
@@ -136,7 +139,7 @@ def whisperx_sub(output_format=output_format,
     print(f'full_output_path: {full_output_path}')
     print("\n")
 
-    """
+"""
     srt_content = srt_reader(str(full_output_path))
     ollama.chat_translate(srt_content)
 
@@ -146,8 +149,7 @@ def whisperx_sub(output_format=output_format,
     # generate a new name with target translation language naming standard
     full_output_path = output_path / (audio_path.stem + SRT_STANDARD_NAME[f'{translation_target_lang}'] + ".srt")
     srt_writer(srt_content, str(full_output_path))
-
-    """
+"""
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
