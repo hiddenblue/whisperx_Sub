@@ -4,7 +4,7 @@ from whisperx.utils import (get_writer)
 from typing import Union
 import math
 from collections import namedtuple
-from typing import NamedTuple, Union
+from typing import NamedTuple, Union, List, Dictjj
 
 # we create a datetype for every token in sentences
 TokenTuple = namedtuple("Token", "word, tag")
@@ -236,8 +236,8 @@ def find_cut_pos(tokenized_sentences: str) -> list:
 
     # this regular expression could be better. I write two rule to extract  Coordinary Conjunction  and Subordinary Conjunction, repectively
     # revise the previous regular expression to match more unit before the ','
-    split_regex = r"""CoordinaryConj: {<.*>{2,3}<,><CC><.*>}
-                      SuborinaryConj: {<.*>{2,3}<,><IN><.*>}
+    split_regex = r"""CoordinaryConj: {<.*>{2,3}<,><CC><.*>{2,3}}
+                      SuborinaryConj: {<.*>{2,3}<,><IN><.*>{2,3}}
                    """
 
     # calling the regxr funcction
@@ -343,13 +343,15 @@ def split_long(long_sentence: dict) -> list:
     :return:
     """
 
+    LENTH_LIMIT = 120
+
     # 这个句子是253 个characters， 大约25秒？
-    if (s_lenght := len(long_sentence["text"])) < 130:
+    if (s_lenght := len(long_sentence["text"])) < LENTH_LIMIT:
         print(f"This length of this sentence is: {s_lenght}. It doesn't  need to be segmentated")
         print(long_sentence["text"], "\n\n")
         return [long_sentence]
 
-    print(f"This length of this sentence is: {s_lenght} > 130 characters, So it will be splited")
+    print(f"This length of this sentence is: {s_lenght} > {LENTH_LIMIT} characters, So it will be splited")
     print(long_sentence["text"], "\n\n")
 
     # The input sentence has alreay be tokenized, so we don't segment it.
@@ -373,8 +375,26 @@ def split_long(long_sentence: dict) -> list:
         ## failed to found cut point, So return itself directly
         return [long_sentence]
 
-    front_sentence, behind_sentence = rearrance_long_sentence(long_sentence, choice)
+
+    # add an second choice candidate to improve the probability of success. 
+    # But pay attention to the failed match case.
+    try: 
+        front_sentence, behind_sentence = rearrance_long_sentence(long_sentence, choice)
     # 这个句子是253 个characters， 大约25秒？
+    except ValueError as e:
+        print(e)
+        if len(all_choice_list) >= 2:
+            choice = all_choice_list[1]
+        else:
+            return [long_sentence]
+        try:
+            print("try second choinces")
+            front_sentence, behind_sentence = rearrance_long_sentence(long_sentence, choice)
+        except Exception as e:
+            print(e)
+            print("Second choices failed too")
+            return [long_sentence]
+        
 
     ret_sentence = []
 
@@ -385,6 +405,54 @@ def split_long(long_sentence: dict) -> list:
         ret_sentence.append(j)
 
     return ret_sentence
+
+
+class Benchmark:
+    """
+    The method of this benchmark is used to determine the split function performance
+    """
+
+    WORDS_LIMIT = 15
+
+    @staticmethod
+    def cal_length(segments: List)->int:
+        return len(segments)
+    @staticmethod
+    def cal_avg_length(segments: List)->Tuple[float, List]:
+        length_list = []
+        for index,value in enumerate(segments):
+            length_list.append(len(segments[index].get("words")))
+        avg = math.fsum(length_list)/len(length_list)
+        return (avg.__round__(3), length_list)
+
+    # calculate the variance of the length of the segments
+    @classmethod
+    def cal_variance(cls, segments: List)->float:
+        avg, length_list  = cls.cal_avg_length(segments)
+        variance = math.fsum([(i - avg) ** 2 for i in length_list])
+        return variance.__round__(3)
+
+    @classmethod
+    def cal_length_over(cls, segments: List):
+
+        limit_list = []
+
+        for i in Benchmark.cal_avg_length(segments)[1]:
+            if i > cls.WORDS_LIMIT:
+                limit_list.append((i - cls.WORDS_LIMIT)**2)
+
+        return sum(limit_list).__round__(3)
+
+    @staticmethod
+    def run_bench(segments: List):
+        avg = Benchmark.cal_avg_length(align_result["segments"])
+        variance = Benchmark.cal_variance(align_result["segments"])
+        length = Benchmark.cal_length(align_result["segments"])
+        length_over = Benchmark.cal_length_over(align_result["segments"])
+        print("avg_length: ", avg)
+        print("variance: ", variance)
+        print("segments length", length)
+        print("length_over", length_over)
 
 
 """
