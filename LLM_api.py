@@ -4,11 +4,12 @@ import requests
 import json
 from openai import OpenAI
 import time
+from abc import ABC, abstractmethod
 
 
 # local LLM server
 # LLM abstract class
-class LLM:
+class LLM(ABC):
     def __init__(self, api_key, base_url, mode, model_name: str, translate_prompt):
 
         if os.getenv("OPENAPI_API_KEY"):
@@ -29,6 +30,9 @@ class LLM:
         pass
 
     def load(self):
+        pass
+
+    def batch_translate(self, transcribe_result):
         pass
 
 class Ollama(LLM):
@@ -109,6 +113,10 @@ def translation(transcribe_result: list, data: dict, translate_prompt: str, base
         # if count > limit:
         #     break
     # here we send a message that set keepalive to False
+
+
+    def batch_translate(self, text, target_language):
+        pass
 
 
 class OPENAI_General_Interface(LLM):
