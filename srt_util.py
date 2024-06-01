@@ -1,6 +1,7 @@
 import os
 import re
 from whisperx.utils import (get_writer)
+import nltk
 from typing import Union
 import math
 from collections import namedtuple
@@ -10,6 +11,8 @@ from typing import NamedTuple, Union, List, Dict, Tuple
 TokenTuple = namedtuple("Token", "word, tag")
 
 UNCOMPLETE_STRUCTURE = ["'s", "'m", "'re", "'d", "'ll", "'re", "n't"]
+
+# 这部分代码看不懂也没关系，太复杂了
 
 
 def srt_reader(srt_file, debug=False) -> []:
@@ -30,7 +33,6 @@ def srt_reader(srt_file, debug=False) -> []:
     while (sentences[-1] == [""] or sentences[-1] == ""):
         sentences.pop()
     return sentences
-
 
 def srt_writer(translation_result: list, output_path: str):
     for i in range(len(translation_result)):
@@ -56,9 +58,6 @@ SRT_STANDARD_NAME = {
     "cn": ".zh-CN"
 }
 
-### split long sentence mode:
-
-import nltk
 
 
 def cal_preference(index_list: list, tokenized_sentences: str) -> list:
@@ -291,8 +290,8 @@ def find_cut_pos(tokenized_sentences: str) -> list:
 
     # parts of speech tagging
     tagged_words = nltk.pos_tag(tokenized_words)
-    print("Tagged_words: ")
-    print("\t", tagged_words, end="\n\n")
+    # print("Tagged_words: ")
+    # print("\t", tagged_words, end="\n\n")
 
     # this regular expression could be better. I write two rule to extract  Coordinary Conjunction  and Subordinary Conjunction, repectively
     # revise the previous regular expression to match more unit before the ','

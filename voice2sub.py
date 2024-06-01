@@ -12,6 +12,7 @@ from nltk.corpus import state_union
 from nltk.tokenize import PunktSentenceTokenizer
 import nltk
 from abc import ABC, abstractmethod
+from config import temp_dir
 
 import logging
 
@@ -77,23 +78,34 @@ def sub_transcribe(audio_file: str,  # auduio file
                                 vad_options={"vad_onset": vad_onset, "vad_offset": vad_offset},
                                 threads=faster_whisper_threads)
 
-    result = model.transcribe(audio_file, batch_size=batch_size, chunk_size=chunk_size, print_progress=True,
+    transcribe_result = model.transcribe(audio_file, batch_size=batch_size, chunk_size=chunk_size, print_progress=True,
                               combined_progress=True)
-    print(result["segments"])  # before alignment
-    print(len(result["segments"]))
-    with open("transcribe_result.py", "w") as file:
-        file.write(str(result))
+    print(transcribe_result["segments"])  # before alignment
+
+    print(len(transcribe_result["segments"]))
+
+    # saved the intermediate product in temp_dir
+    with open(temp_dir+"/transcribe_result.py", "w") as file:
+        file.write(str(transcribe_result))
 
     # 保留一个transribe的结果，方便调试
-    transcribe_result = copy.deepcopy(result)
+    transcribe_result = copy.deepcopy(transcribe_result)
 
-    result["segments"] = SegmentMerge.merge_continue_segment(result["segments"])
+    # merge some segments in transcribe result that has continous end.
+    transcribe_result["segments"] = SegmentMerge.merge_continue_segment(transcribe_result["segments"])
 
+    with open(temp_dir+"/merge_result.py", "w") as file:
+        file.write(str(transcribe_result))
+
+
+    # repunctuate the result 
     rePunctuationer = RePunctuationer(FullStopModel())
-    result = rePunctuationer.re_punctuation(result)
+    transcribe_result = rePunctuationer.re_punctuation(transcribe_result)
 
-    with open("after_re_punctuation.py", "w") as file:
-        file.write(str(result))
+
+    # save intemiate product in temp_dir
+    with open(temp_dir+"/after_re_punctuation.py", "w") as file:
+        file.write(str(transcribe_result))
 
     # delete model if low on GPU resources
     gc.collect()
@@ -101,7 +113,7 @@ def sub_transcribe(audio_file: str,  # auduio file
     del model
 
     print("**************" * 20)
-    return result
+    return transcribe_result
 
 
 def sub_align(transcribe_result:dict,  audio_file: str, device="cuda"):
@@ -118,8 +130,11 @@ def sub_align(transcribe_result:dict,  audio_file: str, device="cuda"):
                             return_char_alignments=False,
                             print_progress=True)
 
-    # print(result["segments"])  # after alignment
-    print(len(transcribe_result["segments"]))
+    print("\nlength of align_result: ",len(align_result["segments"]))
+    print("\n")
+
+    with open(temp_dir+"/align_result.py", "w") as file:
+        file.write(str(align_result))
 
     # delete model if low on GPU resources
     gc.collect()
@@ -158,12 +173,19 @@ class CTPuncModel(PunctuationGenerator):
 
 class RePunctuationer:
     """
-    This class can remove all punctuation incluing ",", "." , "!", "?", ":", ";" and "..."""
+    This class can remove all punctuation incluing ",", "." , "!", "?", ":", ";" and "..."
+    the init()  accepts two kind of punctuation model:
+    1. FullStopModel
+    2. CTPuncModel
+
+    the FullStopModel is the default model
+    """
 
     def __init__(self, PunctuationModel: PunctuationGenerator):
         self.punctuation_list = ['.', ',', '!', '?', ':', ';', '...']
         train_text = state_union.raw("2005-GWBush.txt")
         self.custom_tokenizer = PunktSentenceTokenizer(train_text)
+        print("PunctuationModel init. it will take 10s to load the model, please wait...")
         self.PunctuationModel = PunctuationModel
 
     def re_punctuation(self, transcribe_result: dict, ) -> dict:
