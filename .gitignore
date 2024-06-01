@@ -1,5 +1,8 @@
 output/*
 .idea/*
+tmp/*
+temp/*
+.DS_Store
 
 *.mp3
 
@@ -7,3 +10,9 @@ demo.py
 __pycache__
 .vscode
 *.txt
+
+*.m4a
+*.mp3
+*.mp4
+*.srt
+*.webm
