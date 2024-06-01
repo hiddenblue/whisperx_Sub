@@ -4,7 +4,7 @@ from whisperx.utils import (get_writer)
 from typing import Union
 import math
 from collections import namedtuple
-from typing import NamedTuple, Union, List, Dictjj
+from typing import NamedTuple, Union, List, Dict, Tuple
 
 # we create a datetype for every token in sentences
 TokenTuple = namedtuple("Token", "word, tag")
@@ -103,6 +103,10 @@ def cal_preference(index_list: list, tokenized_sentences: str) -> list:
         if choice["conj"] in [('Whether', 'IN'),('whether', 'IN')]: type_value = 4
         # if choice["conj"] in [('Like', 'IN'),('like', 'IN')]: type_value = 3
 
+        # which dwt
+        if choice["conj"] in [("which", "WDT")]: type_value = 4
+        if choice["conj"] in [(":", ":")]: type_value = 3
+
         distance_mapp_10 = (choice["match_words"][1] + 1) / sentences_length * 10
         distance_value = 5 - math.fabs(distance_mapp_10 - 5)
         preference_value = type_value * distance_value * distance_control_parameter
@@ -134,8 +138,12 @@ def regex_find(reg_expresssion: str, tagged_words: list) -> list:
             # you may get a subree like this
             """Tree('CoordinaryConj', [('good', 'JJ'), ('enough', 'RB'), (',', ','), ('but', 'CC'), ('I', 'PRP')])"""
             for cordconj in subtree:
-                if cordconj in [("and", "CC") ,("or", "CC"), ("but", "CC"), ("And", "CC"), ("Or", "CC"), ("But", "CC")] and subtree[subtree.index(cordconj)-1] == (',', ',') :
-                    pos = tagged_words.index(cordconj, pos_dict.get(cordconj, 0) + 1)
+                if cordconj in [("and", "CC"), ("or", "CC"), ("but", "CC"), ("And", "CC"), ("Or", "CC"),
+                                ("But", "CC")] and subtree[subtree.index(cordconj) - 1] == (',', ','):
+                    try:
+                        pos = tagged_words.index(cordconj, max((pos_dict.get(cordconj, 0) + 1), prefix_length_cut_point))
+                    except ValueError:
+                        continue
                     # I am not sure whether to use "or" or "and". It all depends. I make a strict to the position of the subtree.
                     if prefix_length_cut_point <= pos <= len(tagged_words) - suffix_length_cut_point:
                         index_list.append({"conj": cordconj, "match_words": subtree})
@@ -145,17 +153,46 @@ def regex_find(reg_expresssion: str, tagged_words: list) -> list:
         # for subtree in chunked_words
         if subtree.label() == "SuborinaryConj":
             for subconj in subtree:
-                if subconj  in [("if", "IN"), ("because", "IN"), ("whether", "IN"), ("so", "IN"), ("If", "IN"), ("Because", "IN"),  ("Whether", "IN"), ("So", "IN")] and subtree[subtree.index(subconj)-1] == (',', ',') :
+                if subconj in [("if", "IN"), ("because", "IN"), ("whether", "IN"), ("so", "IN"), ("If", "IN"),
+                               ("Because", "IN"), ("Whether", "IN"), ("So", "IN")] and subtree[
+                    subtree.index(subconj) - 1] == (',', ','):
                     # 这里存在一个bug，如果conjunction在句子的开头，那么就会不符合条件 index只返回第一个符合的。
+                    # 这里还有一个复杂的问题，如果在subtree之外还有conj，就会错误检索到subtree之外，tagged_words以内的词导致出错。
+                    # 用prefix_length来替代试试, 反正这部分匹配不到
                     # 如果有多个就会出错
-                    pos = tagged_words.index(subconj, pos_dict.get(subconj, 0) + 1)
+                    try:
+                        pos = tagged_words.index(subconj, max((pos_dict.get(subconj, 0) + 1), prefix_length_cut_point))
+                    except ValueError:
+                        continue
+                    # I am not sure whether to use "or" or "and". It all depends. I make a strict to the position of the subtree.
                     if prefix_length_cut_point <= pos <= len(tagged_words) - suffix_length_cut_point:
                         index_list.append({"conj": subconj, "match_words": subtree})
                     pos_dict[subconj] = pos
                     continue
+
+        # matching which
+        if subtree.label() == "Which_group":
+            for which_wdt in subtree:
+                if which_wdt in [("which", "WDT")] and subtree[subtree.index(which_wdt) - 1] == (',', ','):
+                    # 这里存在一个bug，如果conjunction在句子的开头，那么就会不符合条件 index只返回第一个符合的。
+                    # 如果有多个就会出错
+                    try:
+                        pos = tagged_words.index(which_wdt, max((pos_dict.get(which_wdt, 0) + 1), prefix_length_cut_point))
+                    except ValueError:
+                        continue
+
+                    # I am not sure whether to use "or" or "and". It all depends. I make a strict to the position of the subtree.
+                    if prefix_length_cut_point <= pos <= len(tagged_words) - suffix_length_cut_point:
+                        index_list.append({"conj": which_wdt, "match_words": subtree})
+                    pos_dict[which_wdt] = pos
+                    continue
+
+
+
     # add logic to match xxxx And xxxx
 
     Speical_token = ("And", "CC")
+    Semicolon_token = (":", ":")
 
     if not index_list:
         pos_dict = {}
@@ -164,11 +201,31 @@ def regex_find(reg_expresssion: str, tagged_words: list) -> list:
                 continue
             else:
                 # some new case, The "And" is placed at the begin the of sentence, So should start at -1+1
-                pos = tagged_words.index(Speical_token, pos_dict.get(Speical_token, -1)+1)
+                try:
+                    pos = tagged_words.index(Speical_token, max((pos_dict.get(Speical_token, 0) + 1), prefix_length_cut_point))
+                except ValueError:
+                    continue
+                # I am not sure whether to use "or" or "and". It all depends. I make a strict to the position of the subtree.
                 if prefix_length_cut_point <= pos <= len(tagged_words) - suffix_length_cut_point:
-                   if tagged_words[index-1] != (",", ",") and tagged_words[index+1] != (",", ","):
-                       index_list.append({"conj": Speical_token, "match_words": tagged_words[index-3:index+2]})
+                    if tagged_words[index - 1] != (",", ",") and tagged_words[index + 1] != (",", ","):
+                        index_list.append({"conj": Speical_token, "match_words": tagged_words[index - 3:index + 2]})
                 pos_dict[Speical_token] = pos
+        for index, tagged_word in enumerate(tagged_words):
+            if tagged_word != (":", ":"):
+                continue
+            else:
+                # some new case, The "And" is placed at the begin the of sentence, So should start at -1+1
+                try:
+                    pos = tagged_words.index(Semicolon_token, max((pos_dict.get(Semicolon_token, 0) + 1), prefix_length_cut_point))
+                except ValueError:
+                    continue
+                # I am not sure whether to use "or" or "and". It all depends. I make a strict to the position of the subtree.
+                if prefix_length_cut_point <= pos <= len(tagged_words) - suffix_length_cut_point:
+                    # if tagged_words[index + 1][0][0].isupper():
+                    index_list.append({"conj": Semicolon_token, "match_words": tagged_words[index - 3:index + 2]})
+                pos_dict[Semicolon_token] = pos
+
+
     """
     [
     [('but', 'CC'), Tree('CoordinaryConj', [('good', 'JJ'), ('enough', 'RB'), (',', ','), ('but', 'CC'), ('I', 'PRP')])],
@@ -183,7 +240,7 @@ def regex_find(reg_expresssion: str, tagged_words: list) -> list:
         print(match_words)
         chunk["match_words"] = tupleTreeToTokenlist(match_words)
         # tackle with case: match_words start with 's et at.
-        if (first_word := chunk["match_words"][0][0]) in UNCOMPLETE_STRUCTURE or first_word == ',':
+        if (first_word := chunk["match_words"][0][0]) in UNCOMPLETE_STRUCTURE or first_word == ',' or first_word == ':':
             # chunk["match_words"].insert(0, tagged_words.)
             match_words = chunk["match_words"][1:]
 
@@ -238,6 +295,7 @@ def find_cut_pos(tokenized_sentences: str) -> list:
     # revise the previous regular expression to match more unit before the ','
     split_regex = r"""CoordinaryConj: {<.*>{2,3}<,><CC><.*>{2,3}}
                       SuborinaryConj: {<.*>{2,3}<,><IN><.*>{2,3}}
+                      Which_group:{<.*>{2,3}<,><WDT><VB.|MD><..+>{4}}
                    """
 
     # calling the regxr funcction
@@ -259,7 +317,7 @@ def find_cut_pos(tokenized_sentences: str) -> list:
             for index in range(len(single_ret["match_words"])):
                 position = None
                 # because in transcribe_res wors, the ',' and "'s" is part of a word, not a individual unit
-                if (word := single_ret["match_words"][index].word) in UNCOMPLETE_STRUCTURE or word == ',':
+                if (word := single_ret["match_words"][index].word) in UNCOMPLETE_STRUCTURE or word == ',' or word == ":":
                     target += word
                 else:
                     target += " " + word
@@ -270,7 +328,11 @@ def find_cut_pos(tokenized_sentences: str) -> list:
                 print(f"Not found position for \" {target} \"")
             else:
                 print(f"Found position for \" {target} \"", outer_position)
-            single_ret["match_words"] = [target.strip(), outer_position + target.find(single_ret["conj"][0])]
+            if single_ret["conj"] != (":", ":"):
+                single_ret["match_words"] = [target.strip(), outer_position + target.find(single_ret["conj"][0])]
+            else:
+                # deal with semincolon   rearrance code
+                single_ret["match_words"] = [target.strip(), outer_position + target.find(single_ret["conj"][0])+2]
 
     return cal_preference(index_list, tokenized_sentences)
 
@@ -315,7 +377,15 @@ def rearrance_long_sentence(long_sentence: dict, choice: list) -> Union[tuple, N
         return None
 
     # find it
-    inner_position = match_list.index(choice["conj"][0])
+    if choice["conj"] != (":", ":"):
+        inner_position = match_list.index(choice["conj"][0])
+    else:
+    # deal with semicolon
+        for i in match_list:
+            if i.find(":") != -1:
+                inner_position = match_list.index(i)+1
+                break
+
     actual_position = outer_word_index + inner_position
 
     # deal with some case that only a number in the word without start_time and end_time
@@ -343,7 +413,7 @@ def split_long(long_sentence: dict) -> list:
     :return:
     """
 
-    LENTH_LIMIT = 120
+    LENTH_LIMIT = 100
 
     # 这个句子是253 个characters， 大约25秒？
     if (s_lenght := len(long_sentence["text"])) < LENTH_LIMIT:
@@ -378,21 +448,22 @@ def split_long(long_sentence: dict) -> list:
 
     # add an second choice candidate to improve the probability of success. 
     # But pay attention to the failed match case.
-    try: 
+    try:
         front_sentence, behind_sentence = rearrance_long_sentence(long_sentence, choice)
     # 这个句子是253 个characters， 大约25秒？
     except ValueError as e:
+        print("\033[91m" + "first choince failed" + "\033[0m")
         print(e)
         if len(all_choice_list) >= 2:
             choice = all_choice_list[1]
         else:
             return [long_sentence]
         try:
-            print("try second choinces")
+            print("\033[91m" + "try second choinces" + "\033[0m")
             front_sentence, behind_sentence = rearrance_long_sentence(long_sentence, choice)
         except Exception as e:
             print(e)
-            print("Second choices failed too")
+            print("\033[91m" + "Second choices failed too" + "\033[0m")
             return [long_sentence]
         
 
@@ -481,8 +552,22 @@ if __name__ == "__main__":
     with open("./align_result.py", "r") as file:
         align_result = eval(file.read())
 
-        for i in align_result["segments"]:
-            split_long(i)
+    Benchmark.run_bench(align_result["segments"])
+
+
+
+
+    new_segments = []
+    for i,j in enumerate(align_result["segments"]):
+        split_ret =  split_long(j)
+        for i in split_ret:
+            new_segments.append(i)
+
+    align_result["segments"] = new_segments
+
+
+    Benchmark.run_bench(align_result["segments"])
+
 
     c = ("and", "CC")
 
