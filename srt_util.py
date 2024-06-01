@@ -97,10 +97,11 @@ def cal_preference(index_list: list, tokenized_sentences: str) -> list:
 
         # Subordinary Conjunction
         # the token before that coord-conj must be ","
+        if choice["conj"] in [('although', 'IN'), ('Although', 'IN')]: type_value = 6
         if choice["conj"] in [('If', 'IN'), ('if', 'IN')]: type_value = 5
-        if choice["conj"] in [('Because', 'IN'),('because', 'IN')]: type_value = 5
-        if choice["conj"] in [('So', 'IN'),('so', 'IN')]: type_value = 5
-        if choice["conj"] in [('Whether', 'IN'),('whether', 'IN')]: type_value = 4
+        if choice["conj"] in [('Because', 'IN'), ('because', 'IN')]: type_value = 5
+        if choice["conj"] in [('So', 'IN'), ('so', 'IN')]: type_value = 5
+        if choice["conj"] in [('Whether', 'IN'), ('whether', 'IN')]: type_value = 4
         # if choice["conj"] in [('Like', 'IN'),('like', 'IN')]: type_value = 3
 
         # which dwt
@@ -153,8 +154,9 @@ def regex_find(reg_expresssion: str, tagged_words: list) -> list:
         # for subtree in chunked_words
         if subtree.label() == "SuborinaryConj":
             for subconj in subtree:
-                if subconj in [("if", "IN"), ("because", "IN"), ("whether", "IN"), ("so", "IN"), ("If", "IN"),
-                               ("Because", "IN"), ("Whether", "IN"), ("So", "IN")] and subtree[
+                if subconj in [("if", "IN"), ("because", "IN"), ("whether", "IN"), ("so", "IN"),("although", 'IN'),
+                               ("If", "IN"),
+                               ("Because", "IN"), ("Whether", "IN"), ("So", "IN"), ("Although", "IN")] and subtree[
                     subtree.index(subconj) - 1] == (',', ','):
                     # 这里存在一个bug，如果conjunction在句子的开头，那么就会不符合条件 index只返回第一个符合的。
                     # 这里还有一个复杂的问题，如果在subtree之外还有conj，就会错误检索到subtree之外，tagged_words以内的词导致出错。
@@ -208,7 +210,8 @@ def regex_find(reg_expresssion: str, tagged_words: list) -> list:
                 # I am not sure whether to use "or" or "and". It all depends. I make a strict to the position of the subtree.
                 if prefix_length_cut_point <= pos <= len(tagged_words) - suffix_length_cut_point:
                     if tagged_words[index - 1] != (",", ",") and tagged_words[index + 1] != (",", ","):
-                        index_list.append({"conj": Speical_token, "match_words": tagged_words[index - 3:index + 2]})
+                        if pos == index:
+                            index_list.append({"conj": Speical_token, "match_words": tagged_words[index - 3:index + 2]})
                 pos_dict[Speical_token] = pos
         for index, tagged_word in enumerate(tagged_words):
             if tagged_word != (":", ":"):
