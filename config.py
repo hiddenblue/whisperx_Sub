@@ -26,6 +26,7 @@ audio_file = "./openai_sample.mp3"
 
 
 # subtitle translation parameters
+# if you wanna execute subtitle translation, you need to provide a LLM, local or remote
 
 is_using_local_model = False
 
