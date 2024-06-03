@@ -31,27 +31,37 @@ transcribe(听写)整个流程一般控制在两分钟以内, 30分钟以上的�
 
 ### 效果：
 
+<div align=center>
+<img src="./misc/rag_ibm.png" alt="rag_ibm.png" width="80%" height="80%">
+</div>
 
-![image.png](./misc/rag_ibm.png)
+<div align=center>
+<img src="./misc/xelite.png" alt="xelite.png" width="80%" height="80%">
+</div>
 
-![xelite](./misc/xelite.png)
+<div align=center>
+<img src="./misc/xelite2.png" alt="xelite2.png" width="80%" height="80%">
+</div>
 
-![xelite2](./misc/xelite2.png)
 
+---
 
 > 部分无法分解的长句效果：
 
 
-![pc world](./misc/pcworld1.png)
+<div align=center>
+<img src="./misc/pcworld1.png" alt="pcworld2.png" width="80%" height="80%">
+</div>
 
-视频效果参考：
+
+**视频效果参考：**
 
 [什么是RAG 检索增强生成 【What_is_Retrieval_Augmented_Generation_RAG】](https://www.bilibili.com/video/BV1Kf421d7kj/?vd_source=fc60a3443b9b14ad9f2afef0ca8b093c)
 
 
 ## 配置需求：
 
-一张能够运行CUDA的NVidia 显卡，具体配置需求参考whisper要求
+一张能够运行CUDA的Nvidia 显卡，具体配置需求参考whisper要求
 
 2-10GB 显存的显卡应该都可以使用（2Gb以下的暂未测试过。
 
@@ -67,14 +77,27 @@ whisper模型共有5个大小，体积越大，transcribe精度越高，请根�
 
 默认使用的是对应的faster whisper large_v2模型。
 
+
 对于小显存的显卡，也推荐使用huggingface上whisper蒸馏模型，在尽可能的保留large v3 模型的精度的前提下，把显存的使用量从10GB降低到5GB左右。
 
 [**distil-whisper**](https://github.com/huggingface/distil-whisper)
 
+| Model                                                                      | Params / M | Rel. Latency ↑ | Short-Form WER ↓ | Long-Form WER ↓ |
+|----------------------------------------------------------------------------|------------|----------------|------------------|-----------------|
+| [large-v3](https://huggingface.co/openai/whisper-large-v3)                 | 1550       | 1.0            | **8.4**          | 11.0            |
+| [large-v2](https://huggingface.co/openai/whisper-large-v2)                 | 1550       | 1.0            | 9.1              | 11.7            |
+|                                                                            |            |                |                  |                 |
+| [distil-large-v3](https://huggingface.co/distil-whisper/distil-large-v3)   | 756        | 6.3            | 9.7              | **10.8**        |
+| [distil-large-v2](https://huggingface.co/distil-whisper/distil-large-v2)   | 756        | 5.8            | 10.1             | 11.6            |
+| [distil-medium.en](https://huggingface.co/distil-whisper/distil-medium.en) | 394        | **6.8**        | 11.1             | 12.4            |
+| [distil-small.en](https://huggingface.co/distil-whisper/distil-small.en)   | **166**    | 5.6            | 12.1             | 12.8            |
+
+
 #### 翻译：
 项目提供了Ollama模型支持，翻译的准确度，速度依GPU性能 模型性能而定。
 
-对于本地LLM模型，至少需要能够运行14B以上大小，否则完全无法保证翻译的质量。
+> [!NOTE]
+> 对于本地LLM模型，至少需要能够运行14B以上大小，否则完全无法保证翻译的质量。
 
 本地模型建议使用单句翻译模型，批量翻译需要110b以上的模型。
 
@@ -84,43 +107,53 @@ whisper模型共有5个大小，体积越大，transcribe精度越高，请根�
 
 [**qwen 1.5 chat**](https://github.com/langchain-ai/langchain/assets/1011680/f0f0d0c9-f0f0-4f0f-8f0f-8f0f8f0f8f0f)
 
-对于需要高准确度和批量翻译的用户，强烈建议使用大语言模型API，性能远超本地模型。
+> [!NOTE]
+>对于需要高准确度和批量翻译的用户，强烈建议使用大语言模型API，性能远超本地模型。
 
 
-#### 注意
-
-batch translation 需要大语言模型能够对自己的输出格式有严格的控制能力，**无法控制输出格式的模型尽量不要使用**
-
-batch translation 速度是逐句翻译的3-5倍速度，且更加节省tokens。
+> [!WARNING]
+>batch translation 需要大语言模型能够对自己的输出格式有严格的控制能力，**无法控制输出格式的模型尽量不要使用**
+>batch translation 速度是逐句翻译的3-5倍速度，且更加节省tokens。
 
 > 作者推荐使用阿里的qwen plus模型，qwen plus实现了在翻译质量、api价格、翻译速度上的完美平衡。
 
 [**Qwen plus API**](https://help.aliyun.com/zh/dashscope/developer-reference/model-introduction?spm=a2c4g.11186623.0.0.746b46c1FXZPd1)
 
-
-
 ## 使用方法
 
 ### 1.下载源码
 
-```bash
-  git clone https://github.com/hiddenblue/whisperx_Sub.git   # git命令clone源码
+git命令clone源码
 
-  cd whisperx_sub   # cd 进入源码目录
+```
+git clone https://github.com/hiddenblue/whisperx_Sub.git`
+```
+
+ cd 进入源码目录`
+
+```
+cd whisperx_sub`
 ```
 
 首先根据**requirements.txt** 安装依赖
 
 ### 2.craete a virtual environment with Python 3.10
-`conda create -n whisperx_sub python==3.10`
+```
+conda create -n whisperx_sub python==3.10
+```
 
-`conda activate whisperx_sub`
+```
+conda activate whisperx_sub
+```
 
 ### 3. Install otherr dependency in requirements.txt
 
 *You need install Nvidia drivers for your GPU*
 
-`conda install pytorch==2.0.0 torchaudio==2.0.0 pytorch-cuda=11.8 -c pytorch -c nvidia`
+```
+pip install -r requirements.txt
+```
+
 
 ### 4.配置：
 
@@ -174,7 +207,9 @@ srt_file_name = ""   需要单独调用 翻译模式时需要指定的srt文件�
 
 直接在terminal或者命令行当中执行whisperx_sub.py文件，或者在IDE中执行
 
-`python whisperx_sub.py`
+```
+python whisperx_sub.py
+```
 
 当看到命令行输出一系列信息后，说明程序开始执行了
 
@@ -210,6 +245,11 @@ output/cut目录下是经过长句分割的字幕文件。
 - 更强的长句断句能力，目前通过手工分析只能解决70%的断句问题
 - 图形化界面，需要一个GUI来降低使用门槛，方便广大用户
 - 修复 whisperx自身的一些错误，提高transcribe的质量
+
+
+## License 📜
+
+This project is licensed under the [GPL-3.0 license](LICENSE) - see the [LICENSE](LICENSE) file for details. 📄
 
 
 ## 更新日志
