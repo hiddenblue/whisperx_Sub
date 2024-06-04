@@ -94,6 +94,7 @@ def whisperx_sub(output_format=output_format,
         # if the number of words in a sentence is larger than WORDS_NUM_LIMITS, we will split it into several short sentences
         segments_copy  = []
         for index in range(len(align_result['segments'])):
+                print(index)
                 if len(align_result['segments'][index]["words"]) < WORDS_NUM_LIMITS:
                     segments_copy.append(align_result['segments'][index])
                 else:

@@ -19,7 +19,7 @@ output_format = "all"
 
 # 需要你配置的一些变量
 # 音频或者视频文件路径
-audio_file = "./openai_sample.mp3"
+audio_file = "./Adding_Coredumps_to_Your_Debugging_Toolkit.aac"
 
 
 
@@ -30,13 +30,15 @@ audio_file = "./openai_sample.mp3"
 
 is_using_local_model = False
 
-base_url = "http://localhost:11434/api/chat"
+base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
-translation_model_name = "qwen:32b-chat-v1.5-q5_K_M"
+api_key = ""
+
+translation_model_name = "qwen-plus"
 
 translation_prompt = ""
 
-srt_file_name = ""
+srt_file_name = "./output/cut/Adding_Coredumps_to_Your_Debugging_Toolkit.srt"
 
 
 

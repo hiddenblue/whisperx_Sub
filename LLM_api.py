@@ -326,7 +326,7 @@ if __name__ == '__main__':
     
     from srt_util import srt_reader
     from srt_util import srt_writer
-    from config import translation_model_name, base_url, srt_file_name, is_using_local_model
+    from config import translation_model_name, base_url, srt_file_name, is_using_local_model, api_key
 
 
     if not translation_model_name:
@@ -339,6 +339,10 @@ if __name__ == '__main__':
 
     if not srt_file_name:
         print("Please set the srt_file_name in config.py")
+        exit(0)
+
+    if not is_using_local_model and not api_key:
+        print("Please set the api_key in config.py")
         exit(0)
 
     print(f"translation_model_name: {translation_model_name}, base_url: {base_url}, srt_file_name: {srt_file_name}")
@@ -359,10 +363,10 @@ if __name__ == '__main__':
 
     else:
         # base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-        API_KEY = ""
+        # API_KEY = ""
 
         openai_model = OPENAI_General_Interface(model_name=translation_model_name,
-                                                api_key=API_KEY,
+                                                api_key=api_key,
                                                 base_url=base_url,
                                                 mode="chat",
                                                 translate_prompt="",
@@ -373,6 +377,6 @@ if __name__ == '__main__':
         # openai_model.chat_translate(srt_content, translate_prompt="")
 
     print([i[2] for i in srt_content])
-    output_name = srt_file_name.split(".")[0] + "-zh-CN"+ ".srt"
-    srt_writer(srt_content, output_name)
+    output_name = srt_file_name.split("/")[-1].split(".")[0] + "-zh-CN" + ".srt"
+    srt_writer(srt_content, "./output/" + output_name)
 

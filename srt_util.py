@@ -10,7 +10,7 @@ from typing import NamedTuple, Union, List, Dict, Tuple
 # we create a datetype for every token in sentences
 TokenTuple = namedtuple("Token", "word, tag")
 
-UNCOMPLETE_STRUCTURE = ["'s", "'m", "'re", "'d", "'ll", "'re", "n't"]
+UNCOMPLETE_STRUCTURE = ["'s", "'m", "'re", "'d", "'ll", "'re", "n't", "'ve"]
 
 # 这部分代码看不懂也没关系，太复杂了
 
@@ -551,7 +551,7 @@ if __name__ == "__main__":
                      'words': [{'word': 'I', 'start': 38.522, 'end': 38.582, 'score': 0.716}, {'word': "don't", 'start': 38.642, 'end': 38.842, 'score': 0.69}, {'word': 'think', 'start': 38.902, 'end': 39.142, 'score': 0.698}, {'word': 'that', 'start': 39.222, 'end': 39.382, 'score': 0.826}, {'word': 'their', 'start': 39.442, 'end': 39.763, 'score': 0.771}, {'word': 'documentation', 'start': 40.083, 'end': 40.743, 'score': 0.858}, {'word': 'is', 'start': 40.803, 'end': 40.904, 'score': 0.568}, {'word': 'good', 'start': 41.064, 'end': 41.204, 'score': 0.868}, {'word': 'enough,', 'start': 41.224, 'end': 41.444, 'score': 0.76}, {'word': 'but', 'start': 42.585, 'end': 42.785, 'score': 0.869}, {'word': 'I', 'start': 43.125, 'end': 43.186, 'score': 0.931}, {'word': 'think', 'start': 43.226, 'end': 43.386, 'score': 0.893}, {'word': 'it', 'start': 43.726, 'end': 43.786, 'score': 0.882}, {'word': 'leaves', 'start': 43.866, 'end': 44.066, 'score': 0.767}, {'word': 'a', 'start': 44.086, 'end': 44.126, 'score': 0.499}, {'word': 'little', 'start': 44.146, 'end': 44.326, 'score': 0.846}, {'word': 'bit', 'start': 44.346, 'end': 44.507, 'score': 0.794}, {'word': 'to', 'start': 44.547, 'end': 44.647, 'score': 0.62}, {'word': 'be', 'start': 44.707, 'end': 45.027, 'score': 0.837}, {'word': 'desired,', 'start': 46.288, 'end': 46.769, 'score': 0.866}, {'word': 'I', 'start': 46.829, 'end': 46.869, 'score': 0.937}, {'word': 'suppose,', 'start': 46.929, 'end': 47.389, 'score': 0.853}, {'word': 'in', 'start': 48.39, 'end': 48.47, 'score': 0.976}, {'word': 'thinking', 'start': 48.51, 'end': 48.77, 'score': 0.778}, {'word': 'about', 'start': 48.81, 'end': 49.09, 'score': 0.826}, {'word': 'what', 'start': 49.211, 'end': 49.331, 'score': 0.973}, {'word': 'are', 'start': 49.371, 'end': 49.451, 'score': 0.808}, {'word': 'all', 'start': 49.471, 'end': 49.611, 'score': 0.742}, {'word': 'the', 'start': 49.631, 'end': 49.711, 'score': 0.797}, {'word': 'things', 'start': 49.751, 'end': 49.951, 'score': 0.772}, {'word': 'that', 'start': 49.971, 'end': 50.051, 'score': 0.893}, {'word': 'we', 'start': 50.091, 'end': 50.191, 'score': 0.882}, {'word': 'really', 'start': 50.251, 'end': 50.472, 'score': 0.806}, {'word': 'can', 'start': 50.492, 'end': 50.612, 'score': 0.998}, {'word': 'do', 'start': 50.672, 'end': 50.772, 'score': 0.998}, {'word': 'with', 'start': 50.812, 'end': 50.932, 'score': 0.794}, {'word': 'this,', 'start': 50.952, 'end': 51.092, 'score': 0.951}, {'word': 'because', 'start': 51.112, 'end': 51.312, 'score': 0.494}, {'word': 'this', 'start': 51.332, 'end': 51.452, 'score': 0.423}, {'word': 'is', 'start': 51.472, 'end': 51.553, 'score': 0.395}, {'word': 'unbelievably', 'start': 51.713, 'end': 52.193, 'score': 0.893}, {'word': 'powerful.', 'start': 52.233, 'end': 52.613, 'score': 0.836}]
                     }
 
-    with open("./align_result.py", "r") as file:
+    with open("./temp/align_result.py", "r") as file:
         align_result = eval(file.read())
 
     Benchmark.run_bench(align_result["segments"])
