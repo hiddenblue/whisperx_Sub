@@ -4,7 +4,7 @@ from LLM_api import Ollama
 from pathlib import Path
 from config import audio_file, task, output_dir, temp_dir, output_format
 from config import WORDS_NUM_LIMITS
-from config import base_url, translation_model_name, translation_prompt
+from config import base_url, translation_model_name, translation_prompt, is_using_local_model
 import os
 
 # task default for transcribe and translation
@@ -59,7 +59,8 @@ debug = False
 
 # turnoff running model
 # please set the model_name to the LLM model that you used before
-Ollama.close_model(model_name=translation_model_name, baseurl=base_url)
+if is_using_local_model:
+    Ollama.close_model(model_name=translation_model_name, baseurl=base_url)
 def whisperx_sub(output_format=output_format,
                  output_dir=output_dir,
                  task=task

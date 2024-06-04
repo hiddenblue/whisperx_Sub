@@ -7,6 +7,7 @@
 ![GitHub last commit](https://img.shields.io/github/last-commit/hiddenblue/whisperx_Sub?color=red)
 [![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fhiddenblue%2Fwhisperx_Sub&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false)](https://hits.seeyoufarm.com)
 
+
 Whisperx_sub 是一个基于Whisperx的视频听写和翻译的字幕生成工具
 
 ## 特性：
@@ -18,6 +19,18 @@ Whisperx_sub 是一个基于Whisperx的视频听写和翻译的字幕生成工�
 - 总结英文断句规律和nltk等自然语言工具，实现了对较长英文句子的自动断句，可以在不影响翻译的情况下，达到对70%的英文长句的准确断句，大幅减少后期打轴的工作量
 
 - 使用常见的[Ollama](https://github.com/ollama/ollama)本地大语言模型，能够实现生成英文字幕的高准确翻译，自动生成对应的中文字幕。同时也开放了对远程大语言模型的支持，能够实现更快，更准确的批量翻译(batch translation), **强烈推荐使用**。同时批量翻译模式下，具备上下文记忆能力，能够更加准确地翻译句子
+
+- 音频或者视频源语言目前只支持英语(后面将会尝试支持日语），翻译目标语言支持多种语言，翻译效果取决于你的LLM模型
+
+| Source Language | Target Language |
+|:---------------:|:---------------:|
+|                 |     Chinese     |
+|                 |    Japanese     |
+|     English     |     German      |
+|                 |     French      |
+|                 |       ...       |
+
+
 
 ## 使用体验：
 
@@ -126,13 +139,13 @@ whisper模型共有5个大小，体积越大，transcribe精度越高，请根�
 git命令clone源码
 
 ```
-git clone https://github.com/hiddenblue/whisperx_Sub.git`
+git clone https://github.com/hiddenblue/whisperx_Sub.git
 ```
 
  cd 进入源码目录`
 
 ```
-cd whisperx_sub`
+cd whisperx_sub
 ```
 
 首先根据**requirements.txt** 安装依赖
@@ -238,6 +251,10 @@ output/cut目录下是经过长句分割的字幕文件。
 │   └── openai_sample.vtt
 ```
 
+### TroubleShooting
+
+你可能需要安装ffmpeg工具来实现对多种音频或者视频格式的支持，安装方法参考：
+https://github.com/openai/whisper#setup
 
 ## Todo 
 
