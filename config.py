@@ -26,7 +26,7 @@ audio_file = "./Adding_Coredumps_to_Your_Debugging_Toolkit.aac"
 
 
 # subtitle translation parameters
-# if you wanna execute subtitle translation, you need to provide a LLM, local or remote
+# if you want to  execute subtitle translation, you need to provide a LLM, local or remote
 
 is_using_local_model = False
 
