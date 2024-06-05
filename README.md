@@ -1,4 +1,4 @@
-# whisperx_Sub
+# Whisperx_Sub
 
 ![GitHub stars](https://img.shields.io/github/stars/hiddenblue/whisperx_Sub?style=social)
 ![GitHub forks](https://img.shields.io/github/forks/hiddenblue/whisperx_Sub?style=social)
@@ -7,20 +7,22 @@
 ![GitHub last commit](https://img.shields.io/github/last-commit/hiddenblue/whisperx_Sub?color=red)
 [![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fhiddenblue%2Fwhisperx_Sub&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false)](https://hits.seeyoufarm.com)
 
+Whisperx_sub is a subtitle generation tool for video transcription and translation, based on Whisperx.
 
-Whisperx_sub 是一个基于Whisperx的视频听写和翻译的字幕生成工具
+## Language
+### [English](README.md)  |   [简体中文](readme/README_zh_CN.md)
 
-## 特性：
+## Features:
 
-- 凭借[Faster whisper](https://github.com/guillaumekln/faster-whisper)语音模型,能够最多60x于原版whisper的速度生成英文字幕, 30分钟视频只需要1-3分钟就能生成完整的英文字幕
+- Utilizing the [Faster whisper](https://github.com/guillaumekln/faster-whisper) speech model, it can generate English subtitles up to 60x faster than the original Whisper, with a 30-minute video taking only 1-3 minutes to produce complete subtitles.
 
-- [Whisperx](https://github.com/m-bain/whisperX) 作者利用wav2vec模型分别解决了whisper的幻听和单词停写不够准确的问题，改进后可以实现单词在逐秒尺度上的准确
+- The author of [Whisperx](https://github.com/m-bain/whisperX) has addressed the issues of hallucination and inaccurate word pausing in Whisper by leveraging the wav2vec model, achieving precision at the second level.
 
-- 总结英文断句规律和nltk等自然语言工具，实现了对较长英文句子的自动断句，可以在不影响翻译的情况下，达到对70%的英文长句的准确断句，大幅减少后期打轴的工作量
+- By summarizing English sentence segmentation rules and using natural language tools like nltk, it automatically segments longer English sentences without affecting translation, accurately handling 70% of long sentences, significantly reducing the workload of subsequent timing adjustments.
 
-- 使用常见的[Ollama](https://github.com/ollama/ollama)本地大语言模型，能够实现生成英文字幕的高准确翻译，自动生成对应的中文字幕。同时也开放了对远程大语言模型的支持，能够实现更快，更准确的批量翻译(batch translation), **强烈推荐使用**。同时批量翻译模式下，具备上下文记忆能力，能够更加准确地翻译句子
+- Utilizing the common [Ollama](https://github.com/ollama/ollama) local large language model, it can achieve highly accurate translation of English subtitles, automatically generating corresponding Chinese subtitles. It also supports remote large language models, enabling faster and more accurate batch translation (batch translation), **strongly recommended for use**. In batch translation mode, it has contextual memory capabilities, allowing for more accurate translation of sentences.
 
-- 音频或者视频源语言目前只支持英语(后面将会尝试支持日语），翻译目标语言支持多种语言，翻译效果取决于你的LLM模型
+- Currently, the source language for audio or video only supports English (Japanese support will be attempted in the future), while the target translation language supports multiple languages, with translation effectiveness depending on your LLM model.
 
 | Source Language | Target Language |
 |:---------------:|:---------------:|
@@ -30,19 +32,17 @@ Whisperx_sub 是一个基于Whisperx的视频听写和翻译的字幕生成工�
 |                 |     French      |
 |                 |       ...       |
 
+## User Experience:
 
+The entire transcribe (transcription) process generally takes under two minutes, with longer videos potentially taking more time.
 
-## 使用体验：
+Translation time:
 
-transcribe(听写)整个流程一般控制在两分钟以内, 30分钟以上的视频可能时间会更久。
+- Batch translation mode is about one-fifth of the video's duration.
+- Sentence-by-sentence translation mode is about one-third of the video's duration.
+The actual effectiveness depends on the model itself.
 
-翻译耗时：
-
-批量翻译模式 约为视频时长的五分之一左右。
-逐句翻译模式 约为视频时长的三分之一左右。
-具体效果取决于模型自身。
-
-### 效果：
+### Results:
 
 <div align=center>
 <img src="./misc/rag_ibm.png" alt="rag_ibm.png" width="80%" height="80%">
@@ -56,31 +56,27 @@ transcribe(听写)整个流程一般控制在两分钟以内, 30分钟以上的�
 <img src="./misc/xelite2.png" alt="xelite2.png" width="80%" height="80%">
 </div>
 
-
 ---
 
-> 部分无法分解的长句效果：
-
+> Results for long sentences that cannot be decomposed:
 
 <div align=center>
 <img src="./misc/pcworld1.png" alt="pcworld2.png" width="80%" height="80%">
 </div>
 
+**Video Reference:**
 
-**视频效果参考：**
+[What is RAG Retrieval Augmented Generation [What_is_Retrieval_Augmented_Generation_RAG]](https://www.bilibili.com/video/BV1Kf421d7kj/?vd_source=fc60a3443b9b14ad9f2afef0ca8b093c)
 
-[什么是RAG 检索增强生成 【What_is_Retrieval_Augmented_Generation_RAG】](https://www.bilibili.com/video/BV1Kf421d7kj/?vd_source=fc60a3443b9b14ad9f2afef0ca8b093c)
+## Configuration Requirements:
 
+A Nvidia graphics card capable of running CUDA, with specific requirements as per Whisper.
 
-## 配置需求：
+Graphics cards with 2-10GB of VRAM should work (cards with less than 2GB have not been tested).
 
-一张能够运行CUDA的Nvidia 显卡，具体配置需求参考whisper要求
+Whisper models come in five sizes, with larger sizes offering higher transcription accuracy. Choose the appropriate model based on your graphics card.
 
-2-10GB 显存的显卡应该都可以使用（2Gb以下的暂未测试过。
-
-whisper模型共有5个大小，体积越大，transcribe精度越高，请根据你的显卡选择合适的模型。
-
-|  Size  | Parameters | English-only model | Multilingual model | Required VRAM | Relative speed |
+| Size  | Parameters | English-only model | Multilingual model | Required VRAM | Relative speed |
 | :----: | :--------: | :----------------: | :----------------: | :-----------: | :------------: |
 |  tiny  |    39 M    |     `tiny.en`      |       `tiny`       |     ~1 GB     |      ~32x      |
 |  base  |    74 M    |     `base.en`      |       `base`       |     ~1 GB     |      ~16x      |
@@ -88,10 +84,9 @@ whisper模型共有5个大小，体积越大，transcribe精度越高，请根�
 | medium |   769 M    |    `medium.en`     |      `medium`      |     ~5 GB     |      ~2x       |
 | large  |   1550 M   |        N/A         |      `large`       |    ~10 GB     |       1x       |
 
-默认使用的是对应的faster whisper large_v2模型。
+The default model used is the corresponding faster whisper large_v2 model.
 
-
-对于小显存的显卡，也推荐使用huggingface上whisper蒸馏模型，在尽可能的保留large v3 模型的精度的前提下，把显存的使用量从10GB降低到5GB左右。
+For graphics cards with smaller VRAM, it is also recommended to use the distilled models from huggingface, which, while retaining as much accuracy as possible from the large v3 model, reduce VRAM usage from 10GB to around 5GB.
 
 [**distil-whisper**](https://github.com/huggingface/distil-whisper)
 
@@ -105,52 +100,49 @@ whisper模型共有5个大小，体积越大，transcribe精度越高，请根�
 | [distil-medium.en](https://huggingface.co/distil-whisper/distil-medium.en) | 394        | **6.8**        | 11.1             | 12.4            |
 | [distil-small.en](https://huggingface.co/distil-whisper/distil-small.en)   | **166**    | 5.6            | 12.1             | 12.8            |
 
-
-#### 翻译：
-项目提供了Ollama模型支持，翻译的准确度，速度依GPU性能 模型性能而定。
+#### Translation:
+The project provides support for the Ollama model, with translation accuracy and speed depending on GPU and model performance.
 
 > [!NOTE]
-> 对于本地LLM模型，至少需要能够运行14B以上大小，否则完全无法保证翻译的质量。
+> For local LLM models, a minimum capability of running 14B or larger is required to ensure translation quality.
 
-本地模型建议使用单句翻译模型，批量翻译需要110b以上的模型。
+Local models are recommended for sentence-by-sentence translation, while batch translation requires models larger than 110b.
 
-
-> 作者推荐使用阿里的qwen 1.5 chat系列 模型，qwen 1.5 32b 量化模型在3090上表现良好，能够很好地实现单句准确翻译。
-
+> Author's recommendation: Use the Alibaba qwen 1.5 chat series model, specifically the qwen 1.5 32b quantized model, which performs well on a 3090 and can accurately translate individual sentences.
 
 [**qwen 1.5 chat**](https://github.com/langchain-ai/langchain/assets/1011680/f0f0d0c9-f0f0-4f0f-8f0f-8f0f8f0f8f0f)
 
 > [!NOTE]
->对于需要高准确度和批量翻译的用户，强烈建议使用大语言模型API，性能远超本地模型。
-
+> For users requiring high accuracy and batch translation, it is strongly recommended to use a large language model API, which significantly outperforms local models.
 
 > [!WARNING]
->batch translation 需要大语言模型能够对自己的输出格式有严格的控制能力，**无法控制输出格式的模型尽量不要使用**
->batch translation 速度是逐句翻译的3-5倍速度，且更加节省tokens。
+> Batch translation requires the large language model to have strict control over its output format; models that cannot control their output format should be used with caution.
+> Batch translation is 3-5 times faster than sentence-by-sentence translation and is more token-efficient.
 
-> 作者推荐使用阿里的qwen plus模型，qwen plus实现了在翻译质量、api价格、翻译速度上的完美平衡。
+> Author's recommendation: Use Alibaba's qwen plus model, which achieves a perfect balance in translation quality, API pricing, and translation speed.
 
 [**Qwen plus API**](https://help.aliyun.com/zh/dashscope/developer-reference/model-introduction?spm=a2c4g.11186623.0.0.746b46c1FXZPd1)
 
-## 使用方法
+## Usage
 
-### 1.下载源码
+### 1. Download the Source Code
 
-git命令clone源码
+Clone the source code using git:
 
 ```
 git clone https://github.com/hiddenblue/whisperx_Sub.git
 ```
 
- cd 进入源码目录`
+Navigate to the source code directory:
 
 ```
 cd whisperx_sub
 ```
 
-首先根据**requirements.txt** 安装依赖
+Install dependencies based on **requirements.txt**:
 
-### 2.craete a virtual environment with Python 3.10
+### 2. Create a Virtual Environment with Python 3.10
+
 ```
 conda create -n whisperx_sub python==3.10
 ```
@@ -159,22 +151,21 @@ conda create -n whisperx_sub python==3.10
 conda activate whisperx_sub
 ```
 
-### 3. Install otherr dependency in requirements.txt
+### 3. Install Additional Dependencies in requirements.txt
 
-*You need install Nvidia drivers for your GPU*
+*You need to install Nvidia drivers for your GPU*
 
 ```
 pip install -r requirements.txt
 ```
 
+### 4. Configuration:
 
-### 4.配置：
+Before running, configure the necessary information in the **config.py** file:
 
-运行前需要在**config.py**文件当中配置运行需要的相关信息
+Enter the path to the target audio file, the task type, and the API information related to the large language model used for translation.
 
-填入目标音频文件的路径，task类型，translation 使用的大语言模型相关的api信息。
-
-#### transcribe 参考配置：
+#### Transcribe Configuration Example:
 
 ```
 # task type
@@ -184,57 +175,56 @@ task = "transcribe"
 
 # transcribe parameters
 
-# 需要你配置的一些变量
-# 音频或者视频文件路径
+# Variables you need to configure
+# Path to the audio or video file
 audio_file = "./openai_sample.mp3"
 ```
 
-其中最重要的是配置填入需要处理的音频文件的路径。
+The most important part is to configure the path to the audio file that needs to be processed.
 
-task type 工作模式有两种，默认只进行transcribe
-1. **transcribe**  只对音频文件进行听写操作。 
+There are two task types, with the default being transcribe only:
+1. **transcribe** - Only performs transcription on the audio file.
+2. **all** - Performs transcription first, then uses the LLM for translation, requiring additional configuration for translation parameters.
 
-2. **all** 则先后对音频文件进行听写，然后利用LLM进行翻译，需要额外配置翻译参数。
+#### Translation Configuration Example:
 
-#### translation 参考配置：
+On top of configuring the transcribe parameters, you need to configure a large language model that can be called:
 
-在配置好transcribe参数的基础上，需配置一个可以调用的大语言模型
-
-config.py 文件当中进行配置
+Configure in the config.py file:
 
 ```
 # subtitle translation parameters
 
-is_using_local_model = False  # 是否使用本地大语言模型，默认为False
+is_using_local_model = False  # Whether to use a local large language model, default is False
 
-base_url = "http://localhost:11434/api/chat"    # 使用的大语言模型api，本地或者远程
+base_url = "http://localhost:11434/api/chat"  # API for the large language model, local or remote
 
-translation_model_name = "qwen:32b-chat-v1.5-q5_K_M"  # LLM模型api
+translation_model_name = "qwen:32b-chat-v1.5-q5_K_M"  # LLM model API
 
-translation_prompt = ""    # 翻译字母时需要用到的prompt提示词，默认可以为空，内置提示词了
+translation_prompt = ""  # Prompt used for subtitle translation, can be left empty as default prompts are built-in
 
-srt_file_name = ""   需要单独调用 翻译模式时需要指定的srt文件路径
+srt_file_name = ""  # Path to the srt file that needs to be specified when using translation mode
 ```
 
-### 运行
+### Running
 
-直接在terminal或者命令行当中执行whisperx_sub.py文件，或者在IDE中执行
+Execute the whisperx_sub.py file directly in the terminal or command line, or run it in an IDE:
 
 ```
 python whisperx_sub.py
 ```
 
-当看到命令行输出一系列信息后，说明程序开始执行了
+Once you see a series of messages output in the command line, the program has started executing.
 
-根据需要transcribe的视频的时间，等待30s-3min后就能得到听写好的字幕文件
+Depending on the length of the video to be transcribed, wait 30 seconds to 3 minutes to obtain the transcribed subtitle file.
 
-###  输出文件
+### Output Files
 
-未经长句分割的字幕文件位于output文件夹下。
+The subtitle files without long sentence segmentation are located in the output folder.
 
-output/cut目录下是经过长句分割的字幕文件。
+The subtitle files with long sentence segmentation are in the output/cut directory.
 
-翻译得到的字幕文件为音频文件名字 +CN-ZH.srt文件，位于output目录当中。
+The translated subtitle files are named after the audio file with a +CN-ZH.srt extension and are located in the output directory.
 
 ```
 ├── output
@@ -251,29 +241,25 @@ output/cut目录下是经过长句分割的字幕文件。
 │   └── openai_sample.vtt
 ```
 
-### TroubleShooting
+### Troubleshooting
 
-你可能需要安装ffmpeg工具来实现对多种音频或者视频格式的支持，安装方法参考：
+You may need to install the ffmpeg tool to support various audio and video formats. Installation methods can be found at:
 https://github.com/openai/whisper#setup
 
-## Todo 
+## Todo
 
-- 更多的语言支持，目前只支持英文（作者只会英语
-- 更强的长句断句能力，目前通过手工分析只能解决70%的断句问题
-- 图形化界面，需要一个GUI来降低使用门槛，方便广大用户
-- 修复 whisperx自身的一些错误，提高transcribe的质量
-
+- Support for more languages, currently only English is supported (the author only knows English)
+- Improved long sentence segmentation capabilities, currently only 70% of issues can be resolved through manual analysis
+- A graphical user interface (GUI) is needed to lower the usage threshold and make it more user-friendly for a wide audience
+- Fix some issues with Whisperx itself and improve the quality of transcription
 
 ## License 📜
 
 This project is licensed under the [GPL-3.0 license](LICENSE) - see the [LICENSE](LICENSE) file for details. 📄
 
+## Changelog
 
-## 更新日志
-
-
-
-## 参考的项目
+## References
 1. [**Whisper**](https://github.com/openai/whisper)
 
 2. [**Faster-whisper**](https://github.com/SYSTRAN/faster-whisper)
